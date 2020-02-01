@@ -66,3 +66,22 @@ class DroneControl:
             dronesClient.append(cli_drone)
         for drone in dronesClient:
             drone.join()
+    
+    def GetMultirotorState(self, drone):
+        """
+        Method to get current drone states
+        """
+        if drone in self.droneList:
+            return self.client.getMultirotorState(vehicle_name=drone)
+        else:
+            print('Drone does not exists!')
+    
+    def GetBarometerData(self, drone):
+        """
+        Method to get barometer data
+        """
+        if drone in self.droneList:
+            return self.client.getBarometerData(vehicle_name=drone)
+        else:
+            print('Drone does not exists!')
+    

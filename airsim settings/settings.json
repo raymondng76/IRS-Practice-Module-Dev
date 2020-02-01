@@ -4,7 +4,26 @@
   "ClockSpeed": 1,
   "ViewMode": "SpringArmChase",
   "SimMode": "Multirotor",
-  
+  "DefaultSensors": {
+	"Barometer": {
+		"SensorType": 1,
+		"Enabled": true
+	},
+	"Gps": {
+		"SensorType": 1,
+		"Enabled": true
+	},
+	"Imu": {
+		"SensorType": 1,
+		"Enabled": true
+	},
+	"Lidar1": {
+		"SensorType": 6,
+		"Enabled": true,
+		"NumberOfChannels": 16,
+		"PointsPerSecond": 10000
+	}
+  },
   "Vehicles": {
 	"Drone1": {
 		"VehicleType": "SimpleFlight",
@@ -12,11 +31,11 @@
 	},
 	"Drone2": {
 		"VehicleType": "SimpleFlight",
-		"X": 8, "Y": 0, "Z": -2
+		"X": 6, "Y": 2, "Z": -2
 	},
 	"Drone3": {
 		"VehicleType": "SimpleFlight",
-		"X": 12, "Y": 0, "Z": -2
+		"X": 6, "Y": -2, "Z": -2
 	}
   }
 }
