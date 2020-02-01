@@ -6,32 +6,63 @@ Intelligent Robotic Systems Practice Module
 """
 
 import airsim
+import time
 
 class DroneControl:
     def __init__(self, droneList):
         self.client = airsim.MultirotorClient()
-        self.Init_AirSim(droneList=droneList)
+        self.client.confirmConnection()
+        self.droneList = droneList
+        self.Init_AirSim()
 
-    def Init_AirSim(droneList):
+    def Init_AirSim(self):
         """
         Method to initialize AirSim for a list of drones
-        Input: list of Drone names stated in settings.json
-        Output: AirSim MultirotorClient object with all requested drone
         """
-        self.client.confirmConnection()
-        for drone in droneList:
+        for drone in self.droneList:
             self.client.enableApiControl(True, drone)
             self.client.armDisarm(True, drone)
     
-    def Shutdown_AirSim(client, droneList):
+    def Shutdown_AirSim(self):
         """
         Method to un-init all drones and quit AirSim
-        Input: list of Drone names stated in settings.json
-        Output: Nil
         """
-        for drone in droneList:
-            self.client.armDisarm(False, drone)
+        self.ArmDisarm(False)
         self.client.reset()
-        for drone in droneList:
-            self.client.enableApiControl(False, drone)
+        self.EnableApiControl(False)
+    
+    def ResetAndRearm_Drones(self):
+        """
+        Method to reset all drones to original starting state and rearm
+        """
+        self.ArmDisarm(False)
+        self.client.reset()
+        self.EnableApiControl(False)
+        time.sleep(0.5)
+        self.EnableApiControl(True)
+        self.ArmDisarm(True)
 
+    def ArmDisarm(self, status):
+        """
+        Method to arm or disarm all drones
+        """
+        for drone in self.droneList:
+            self.client.armDisarm(status, drone)
+    
+    def EnableApiControl(self, status):
+        """
+        Method to enable or disable drones API control
+        """
+        for drone in self.droneList:
+            self.client.enableApiControl(status, drone)
+
+    def TakeOff(self):
+        """
+        Method to take off for all drones
+        """
+        dronesClient = []
+        for drone in self.droneList:
+            cli_drone = self.client.takeoffAsync(vehicle_name=drone)
+            dronesClient.append(cli_drone)
+        for drone in dronesClient:
+            drone.join()
