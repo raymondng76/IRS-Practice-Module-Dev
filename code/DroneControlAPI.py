@@ -38,7 +38,7 @@ class DroneControl:
         self.ArmDisarm(False)
         self.client.reset()
         self.EnableApiControl(False)
-        time.sleep(0.5)
+        time.sleep(0.25)
         self.EnableApiControl(True)
         self.ArmDisarm(True)
 
@@ -66,7 +66,7 @@ class DroneControl:
             dronesClient.append(cli_drone)
         for drone in dronesClient:
             drone.join()
-    
+
     def GetMultirotorState(self, drone):
         """
         Method to get current drone states
@@ -76,12 +76,56 @@ class DroneControl:
         else:
             print('Drone does not exists!')
     
-    def GetBarometerData(self, drone):
+    def GetBarometerData(self, barometer, drone):
         """
         Method to get barometer data
         """
         if drone in self.droneList:
-            return self.client.getBarometerData(vehicle_name=drone)
+            return self.client.getBarometerData(barometer_name=barometer, vehicle_name=drone)
         else:
             print('Drone does not exists!')
     
+    def GetImuData(self, imu, drone):
+        """
+        Method to get imu data
+        """
+        if drone in self.droneList:
+            return self.client.getImuData(imu_name=imu, vehicle_name=drone)
+        else:
+            print('Drone does not exists!')
+    
+    def GetGpsData(self, gps, drone):
+        """
+        Method to get gps data
+        """
+        if drone in self.droneList:
+            return self.client.getGpsData(gps_name=gps, vehicle_name=drone)
+        else:
+            print('Drone does not exists!')
+    
+    def GetMagnetometerData(self, mag, drone):
+        """
+        Method to get Magnetometer data
+        """
+        if drone in self.droneList:
+            return self.client.getMagnetometerData(magnetometer_name=mag, vehicle_name=drone)
+        else:
+            print('Drone does not exists!')
+    
+    def GetDistanceData(self, lidar, drone):
+        """
+        Method to get Distance data
+        """
+        if drone in self.droneList:
+            return self.client.getDistanceSensorData(lidar_name=lidar, vehicle_name=drone)
+        else:
+            print('Drone does not exists!')
+
+    def GetLidarData(self, lidar, drone):
+        """
+        Method to get lidar data
+        """
+        if drone in self.droneList:
+            return self.client.getLidarData(lidar_name=lidar, vehicle_name=drone)
+        else:
+            print('Drone does not exists!')

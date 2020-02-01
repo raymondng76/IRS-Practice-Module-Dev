@@ -2,40 +2,119 @@
   "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
   "SettingsVersion": 1.2,
   "ClockSpeed": 1,
-  "ViewMode": "SpringArmChase",
+  "ViewMode": "FlyWithMe",
   "SimMode": "Multirotor",
-  "DefaultSensors": {
-	"Barometer": {
-		"SensorType": 1,
-		"Enabled": true
-	},
-	"Gps": {
-		"SensorType": 1,
-		"Enabled": true
-	},
-	"Imu": {
-		"SensorType": 1,
-		"Enabled": true
-	},
-	"Lidar1": {
-		"SensorType": 6,
-		"Enabled": true,
-		"NumberOfChannels": 16,
-		"PointsPerSecond": 10000
-	}
-  },
+  "SubWindows": [
+    {"WindowID": 0, "CameraName": "0", "ImageType": 3, "Visible": true},
+    {"WindowID": 1, "CameraName": "0", "ImageType": 5, "Visible": true},
+    {"WindowID": 2, "CameraName": "0", "ImageType": 0, "Visible": true}    
+  ],
   "Vehicles": {
 	"Drone1": {
 		"VehicleType": "SimpleFlight",
-		"X": 4, "Y": 0, "Z": -2
+		"AutoCreate": true,
+		"X": 4, "Y": 0, "Z": -2,
+		"Sensors": {
+			"Barometer1": {
+				"SensorType": 1,
+				"Enabled": true
+			},
+			"Imu1": {
+				"SensorType": 2,
+				"Enabled": true
+			},
+			"Gps1": {
+				"SensorType": 3,
+				"Enabled": true
+			},
+			"Magnetometer1": {
+				"SensorType": 4,
+				"Enabled": true
+			},
+			"Distance1": {
+				"SensorType": 5,
+				"Enabled": true
+			},
+			"Lidar1": {
+				"SensorType": 6,
+				"Enabled": true,
+				"NumberOfChannels": 16,
+				"RotationsPerSecond": 10,
+				"PointsPerSecond": 100000,
+				"DrawDebugPoints": true,
+				"DataFrame": "SensorLocalFrame"
+			}
+		}
 	},
 	"Drone2": {
 		"VehicleType": "SimpleFlight",
-		"X": 6, "Y": 2, "Z": -2
+		"X": 6, "Y": 2, "Z": -2,
+		"Sensors": {
+			"Barometer1": {
+				"SensorType": 1,
+				"Enabled": true
+			},
+			"Imu1": {
+				"SensorType": 2,
+				"Enabled": true
+			},
+			"Gps1": {
+				"SensorType": 3,
+				"Enabled": true
+			},
+			"Magnetometer1": {
+				"SensorType": 4,
+				"Enabled": true
+			},
+			"Distance1": {
+				"SensorType": 5,
+				"Enabled": true
+			},
+			"Lidar1": {
+				"SensorType": 6,
+				"Enabled": true,
+				"NumberOfChannels": 16,
+				"RotationsPerSecond": 10,
+				"PointsPerSecond": 100000,
+				"DrawDebugPoints": true,
+				"DataFrame": "SensorLocalFrame"
+			}
+		}
 	},
 	"Drone3": {
 		"VehicleType": "SimpleFlight",
-		"X": 6, "Y": -2, "Z": -2
+		"X": 6, "Y": -2, "Z": -2,
+		"Sensors": {
+			"Barometer1": {
+				"SensorType": 1,
+				"Enabled": true
+			},
+			"Imu1": {
+				"SensorType": 2,
+				"Enabled": true
+			},
+			"Gps1": {
+				"SensorType": 3,
+				"Enabled": true
+			},
+			"Magnetometer1": {
+				"SensorType": 4,
+				"Enabled": true
+			},
+			"Distance1": {
+				"SensorType": 5,
+				"Enabled": true
+			},
+			"Lidar1": {
+				"SensorType": 6,
+				"Enabled": true,
+				"NumberOfChannels": 16,
+				"RotationsPerSecond": 10,
+				"PointsPerSecond": 100000,
+				"DrawDebugPoints": true,
+				"DataFrame": "SensorLocalFrame"
+			}
+		}
 	}
   }
 }
