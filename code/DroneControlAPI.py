@@ -7,15 +7,16 @@ Intelligent Robotic Systems Practice Module
 
 import airsim
 import time
+import numpy as np
 
 class DroneControl:
     def __init__(self, droneList):
         self.client = airsim.MultirotorClient()
         self.client.confirmConnection()
         self.droneList = droneList
-        self.Init_AirSim()
-
-    def Init_AirSim(self):
+        self.init_AirSim()
+    
+    def init_AirSim(self):
         """
         Method to initialize AirSim for a list of drones
         """
@@ -23,40 +24,40 @@ class DroneControl:
             self.client.enableApiControl(True, drone)
             self.client.armDisarm(True, drone)
     
-    def Shutdown_AirSim(self):
+    def shutdown_AirSim(self):
         """
         Method to un-init all drones and quit AirSim
         """
-        self.ArmDisarm(False)
+        self.armDisarm(False)
         self.client.reset()
-        self.EnableApiControl(False)
+        self.enableApiControl(False)
     
-    def ResetAndRearm_Drones(self):
+    def resetAndRearm_Drones(self):
         """
         Method to reset all drones to original starting state and rearm
         """
-        self.ArmDisarm(False)
+        self.armDisarm(False)
         self.client.reset()
-        self.EnableApiControl(False)
+        self.enableApiControl(False)
         time.sleep(0.25)
-        self.EnableApiControl(True)
-        self.ArmDisarm(True)
+        self.enableApiControl(True)
+        self.armDisarm(True)
 
-    def ArmDisarm(self, status):
+    def armDisarm(self, status):
         """
         Method to arm or disarm all drones
         """
         for drone in self.droneList:
             self.client.armDisarm(status, drone)
     
-    def EnableApiControl(self, status):
+    def enableApiControl(self, status):
         """
         Method to enable or disable drones API control
         """
         for drone in self.droneList:
             self.client.enableApiControl(status, drone)
 
-    def TakeOff(self):
+    def takeOff(self):
         """
         Method to take off for all drones
         """
@@ -67,7 +68,7 @@ class DroneControl:
         for drone in dronesClient:
             drone.join()
 
-    def GetMultirotorState(self, drone):
+    def getMultirotorState(self, drone):
         """
         Method to get current drone states
         """
@@ -76,7 +77,7 @@ class DroneControl:
         else:
             print('Drone does not exists!')
     
-    def GetBarometerData(self, barometer, drone):
+    def getBarometerData(self, barometer, drone):
         """
         Method to get barometer data
         """
@@ -85,7 +86,7 @@ class DroneControl:
         else:
             print('Drone does not exists!')
     
-    def GetImuData(self, imu, drone):
+    def getImuData(self, imu, drone):
         """
         Method to get imu data
         """
@@ -94,7 +95,7 @@ class DroneControl:
         else:
             print('Drone does not exists!')
     
-    def GetGpsData(self, gps, drone):
+    def getGpsData(self, gps, drone):
         """
         Method to get gps data
         """
@@ -103,7 +104,7 @@ class DroneControl:
         else:
             print('Drone does not exists!')
     
-    def GetMagnetometerData(self, mag, drone):
+    def getMagnetometerData(self, mag, drone):
         """
         Method to get Magnetometer data
         """
@@ -112,7 +113,7 @@ class DroneControl:
         else:
             print('Drone does not exists!')
     
-    def GetDistanceData(self, lidar, drone):
+    def getDistanceData(self, lidar, drone):
         """
         Method to get Distance data
         """
@@ -121,11 +122,37 @@ class DroneControl:
         else:
             print('Drone does not exists!')
 
-    def GetLidarData(self, lidar, drone):
+    def getLidarData(self, lidar, drone):
         """
         Method to get lidar data
         """
         if drone in self.droneList:
             return self.client.getLidarData(lidar_name=lidar, vehicle_name=drone)
+        else:
+            print('Drone does not exists!')
+    
+    def getDronePos(self, drone):
+        """
+        Method to get X, Y, Z axis values of drone
+        """
+        if drone in self.droneList:
+            x_val = int(self.client.simGetGroundTruthKinematics(vehicle_name=drone).position.x_val)
+            y_val = int(self.client.simGetGroundTruthKinematics(vehicle_name=drone).position.y_val)
+            z_val = int(self.client.simGetGroundTruthKinematics(vehicle_name=drone).position.z_val)
+            return np.array([x_val, y_val, z_val])
+        else:
+            print('Drone does not exists!')
+    
+    def moveDrone(self, drone, position, duration):
+        """
+        Method to move drone to indicated position
+        pos = [x_val, y_val, z_val]
+        """
+        if drone in self.droneList:
+            self.client.moveByVelocityZAsync(vehicle_name=drone, 
+                                             vx=position[0], 
+                                             vy=position[1], 
+                                             z=position[2], 
+                                             duration=duration)
         else:
             print('Drone does not exists!')
