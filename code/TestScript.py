@@ -13,13 +13,14 @@ airsim.wait_key('Press any key to read state')
 state = pprint.pformat(dc.getMultirotorState('Drone1'))
 print(f"State : {state}")
 
-airsim.wait_key('Press any key to read sensors')
+airsim.wait_key('Press any key to move drone')
+dc.moveDrone('Drone1', [0,0,-10], 0.5)
 
-dc.moveDrone('DroneTarget', [10,10,10], 0.5)
-
-pos = dc.getDronePos('DroneTarget')
+airsim.wait_key('Press any key to get drone pos')
+pos = dc.getDronePos('Drone1')
 print(f'pos = {pos}')
 
+# airsim.wait_key('Press any key to read sensors')
 # baro = pprint.pformat(dc.GetBarometerData('Barometer1', 'Drone1'))
 # print(f'Baro : {baro}')
 # imu = pprint.pformat(dc.GetImuData('Imu1', 'Drone1'))

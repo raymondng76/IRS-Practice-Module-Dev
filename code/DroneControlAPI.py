@@ -136,9 +136,9 @@ class DroneControl:
         Method to get X, Y, Z axis values of drone
         """
         if drone in self.droneList:
-            x_val = int(self.client.simGetGroundTruthKinematics(vehicle_name=drone).position.x_val)
-            y_val = int(self.client.simGetGroundTruthKinematics(vehicle_name=drone).position.y_val)
-            z_val = int(self.client.simGetGroundTruthKinematics(vehicle_name=drone).position.z_val)
+            x_val = self.client.simGetGroundTruthKinematics(vehicle_name=drone).position.x_val
+            y_val = self.client.simGetGroundTruthKinematics(vehicle_name=drone).position.y_val
+            z_val = self.client.simGetGroundTruthKinematics(vehicle_name=drone).position.z_val
             return np.array([x_val, y_val, z_val])
         else:
             print('Drone does not exists!')
@@ -153,6 +153,6 @@ class DroneControl:
                                              vx=position[0], 
                                              vy=position[1], 
                                              z=position[2], 
-                                             duration=duration)
+                                             duration=duration).join()
         else:
             print('Drone does not exists!')
