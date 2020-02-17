@@ -1,0 +1,1 @@
+./run_airsim_image_binary.sh airsim_binary:10.1-devel-ubuntu18.04 Blocks/Blocks.sh -windowed -resX=1280 -resY=720
