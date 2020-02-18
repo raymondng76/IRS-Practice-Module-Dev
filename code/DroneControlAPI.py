@@ -36,9 +36,9 @@ class DroneControl:
         """
         Method to reset all drones to original starting state and rearm
         """
-        self.armDisarm(False)
+        #self.armDisarm(False)
         self.client.reset()
-        self.enableApiControl(False)
+        #self.enableApiControl(False)
         time.sleep(0.25)
         self.enableApiControl(True)
         self.armDisarm(True)
@@ -156,3 +156,21 @@ class DroneControl:
                                              duration=duration).join()
         else:
             print('Drone does not exists!')
+            
+    def simPause(self,pause):
+        """
+        Pass-through method to pause simulation
+        """
+        self.client.simPause(pause)
+        
+    def simGetCollisionInfo(self, drone):
+        """
+        Pass-through method to get collision info
+        """
+        return self.client.simGetCollisionInfo(drone)
+    
+    def hoverAsync(self, drone):
+        """
+        Pass-through method for hoverAsync
+        """
+        return self.client.hoverAsync(drone)
