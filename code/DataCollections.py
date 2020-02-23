@@ -249,10 +249,12 @@ if __name__ == '__main__':
     droneID = ['TargetDrone, ShooterDrone']
     dc = DroneControl(droneID)
 
+    dc.takeOff()
     # Check landed state
-    landed_state = dc.client.getMultirotorState().landed_state
+    target_landed_state = dc.client.getMultirotorState(droneID[0]).landed_state
+    shooter_landed_state = dc.client.getMultirotorState(droneID[1]).landed_state
 
-    if landed_state == airsim.LandedState.Landed:
+    if target_landed_state == airsim.LandedState.Landed or shooter_landed_state == airsim.LandedState.Landed:
         print('Take Off')
         pos = dc.client.getMultirotorState().kinematics_estimated.position
         z = pos.z_val - 1
@@ -264,5 +266,7 @@ if __name__ == '__main__':
         z = pos.z_val
     
     # Create OrbitImager object
-    # oi = OrbiterImager()
+    oi = OrbiterImager(2, 0, z, dc, -20, 0.4, 3, 1, 2, 1, snapshots_count=30, image_dir='./images/')
+
+    
     
