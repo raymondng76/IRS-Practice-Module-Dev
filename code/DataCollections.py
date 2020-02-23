@@ -118,17 +118,135 @@ class OrbiterImager:
         self.center.y_val += cy
 
     def start(self):
-        pass
+        print('Arm Drone...')
+        self.drone_control.client.armDisarm(True)
 
+        start = self.drone_control.client.getMultirotorState().kinematics_estimated.position
+        landed = self.drone_control.client.getMultirotorState().landed_state
+        if not self.takeoff and landed == airsim.LandedState.Landed:
+            self.takeoff = True
+            print('Taking off...')
+            self.drone_control.client.takeoffAsync().join()
+            start = self.drone_control.client.getMultirotorState().kinematics_estimated.position
+            z = -self.altitude + self.home.z_val
+        else:
+            print(f'Already Flown @ {start.z_val}')
+            z = start.z_val
+        
+        print(f'Climbing to pos: {start.x_val}, {start.y_val}, {z}')
+        self.drone_control.client.moveToPositionAsync(
+            start.x_val, start.y_val, z, self.speed
+        ).join()
+        self.z = z
 
+        print('Ramp to spd...')
+        count = 0
+        self.start_angle = None
+        self.next_snapshot = None
 
+        ramptime = self.radius / 10
+        self.start_time = time.time()
 
+        while count < self.iterations and self.snapshot_index < self.snapshots:
+            now = time.time()
+            speed = self.speed
+            diff = now - self.start_time
+            if diff < ramptime:
+                speed = self.speed * diff / ramptime
+            elif ramptime > 0:
+                print('Reached full speed...')
+                ramptime = 0
+            
+            lookahead_angle = speed / self.radius
 
+            # compute current angle
+            pos = self.drone_control.client.getMultirotorState().kinematics_esetimated.position
+            dx = pos.x_val - self.center.x_val
+            dy = pos.y_val - self.center.y_val
+            actual_radius = math.sqrt((dx*dx) + (dy*dy))
+            angle_to_center = math.atan2(dy, dx)
 
+            camera_heading = (angle_to_center - math.pi) * 180 / math.pi
+
+            # compute lookahead
+            lookahead_x = self.center.x_val + self.radius * \
+                math.cos(angle_to_center + lookahead_angle)
+            lookahead_y = self.center.y_val + self.radius * \
+                math.cos(angle_to_center + lookahead_angle)
+            
+            vx = lookahead_x - pos.x_val
+            vy = lookahead_y - pos.y_val
+
+            if self.track_orbits(angle_to_center * 180 / math.pi):
+                count += 1
+                print(f'Completed {count} orbits')
+            
+            self.camera_heading = camera_heading
+            self.drone_control.client.moveByVelocityZAsync(
+                vx, vy, z, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, camera_heading)
+            )
+        self.drone_control.client.moveToPositionAsync(start.x_val, start.y_val, z, 2).join()
+
+    def track_orbits(self, angle):
+        if angle < 0:
+            angle += 360
+        
+        if self.start_angle is None:
+            self.start_angle = angle
+            if self.snapshot_delta:
+                self.next_snapshot = angle + self.snapshot_delta
+            self.previous_angle = angle
+            self.shifted = False
+            self.previous_sign = None
+            self.previous_diff = None
+            self.quarter = False
+            return False
+        
+        # Watch for smooth crossing from negative diff to positive diff
+        if self.previous_angle is None:
+            self.previous_angle = angle
+            return False
+
+        # ignore click over from 360 back to 0
+        if self.previous_angle > 350 and angle < 20:
+            if self.snapshot_delta and self.next_snapshot >= 360:
+                self.next_snapshot -= 360
+            return False
+        
+        diff = self.previous_angle - angle
+        crossing = False
+        self.previous_angle = angle
+
+        if self.snapshot_delta and angle > self.next_snapshot:
+            print(f'Take snapshot at angle {angle}')
+            self.take_snapshot()
+            self.next_snapshot += self.snapshot_delta
+        
+        diff = abs(angle - self.start_angle)
+        if diff > 45:
+            self.quarter = True
+        
+        if self.quarter and self.previous_diff is not None and diff != self.previous_diff:
+            direction = self.sign(self.previous_diff - diff)
+            if self.pervious_sign is None:
+                self.previous_sign = direction
+            elif self.previous_sign > 0 and direction < 0:
+                if diff < 45:
+                    self.quarter = False
+                    if self.snapshots <= self.snapshot_index + 1:
+                        crossing = True
+            self.previous_sign = direction
+        self.previous_diff = diff
+        return crossing
+
+        def sign(self, s):
+            if s < 0:
+                return -1
+            return 1
 
 if __name__ == '__main__':
     print('Start')
-    droneID = ['Drone']
+    droneID = ['TargetDrone, ShooterDrone']
     dc = DroneControl(droneID)
 
     # Check landed state
