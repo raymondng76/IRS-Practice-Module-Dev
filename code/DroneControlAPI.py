@@ -149,7 +149,7 @@ class DroneControl:
         pos = [x_val, y_val, z_val]
         """
         if drone in self.droneList:
-            self.client.moveByVelocityZAsync(vehicle_name=drone, 
+            self.client.moveToPositionAsync(vehicle_name=drone, 
                                              vx=position[0], 
                                              vy=position[1], 
                                              z=position[2], 

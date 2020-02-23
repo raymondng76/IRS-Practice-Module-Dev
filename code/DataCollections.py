@@ -19,6 +19,7 @@ class OrbiterImager:
                 cy,
                 z,
                 drone_control,
+                droneID,
                 camera_angle,
                 radius=2,
                 altitude=10,
@@ -30,6 +31,7 @@ class OrbiterImager:
         @param cx: X position of starting orbit
         @param cy: Y position of starting orbit
         @param drone_control: drone_control object
+        @param droneID: id of shooter drone
         @param camera_angle: angle where the camera is pointing
         @param radius: orbit radius (default=2)
         @param altitude: orbit altitude (default=10)
@@ -45,6 +47,7 @@ class OrbiterImager:
         self.iterations = iterations
         self.image_dir = image_dir
         self.drone_control = drone_control
+        self.droneID = droneID
 
         x = cx - radius
         y = cy
@@ -56,17 +59,17 @@ class OrbiterImager:
 
         # Move to start orbit position
         print('Move to start position.')
-        self.drone_control.client.moveToPositionAsync(
+        self.drone_control.moveToPositionAsync(
             x, y, z, 1, 60, 
             drivetrain=airsim.DrivetrainType.MaxDegreeOfFreedom,
             yaw_mode=airsim.YawMode(False, 0)
         ).join()
-        pos = self.drone_control.client.getMultirotorState().kinematics_estimated.position
+        pos = self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.position
 
         dx = x - pos.x_val
         dy = y - pos.y_val
         yaw = airsim.to_eularian_angles(
-            self.drone_control.client.getMultirotorState().kinematics_estimated.orientation
+            self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.orientation
         )[2]
 
         # Correct position
@@ -76,17 +79,17 @@ class OrbiterImager:
                 drivetrain=airsim.DrivetrainType.MaxDegreeOfFreedom,
                 yaw_mode=airsim.YawMode(False, 0)
             ).join()
-            pos = self.drone_control.client.getMultirotorState().kinematics_estimated.position
+            pos = self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.position
             dx = x - pos.x_val
             dy = y - pos.y_val
             yaw = airsim.to_eularian_angles(
-                self.drone_control.client.getMultirotorState().kinematics_estimated.orientation
+                self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.orientation
             )[2]
             print(f"Yaw is {yaw}")
         
         print(f'Location offset is {dx}, {dy}')
         fyaw = airsim.to_eularian_angles(
-            self.drone_control.client.getMultirotorState().kinematics_estimated.orientation
+            self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.orientation
         )[2]
         print(f'Final yaw is {fyaw}')
 
@@ -98,7 +101,7 @@ class OrbiterImager:
         cx *= self.radius
         cy *= self.radius
 
-        self.home = self.drone_control.client.getMultirotorState().kinematics_estimated.position
+        self.home = self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.position
         # Check home position stability
         start = time.time()
         count = 0
@@ -113,7 +116,7 @@ class OrbiterImager:
             else:
                 count += 1
 
-        self.center = self.drone_control.client.getMultirotorState().kinematics_estimated.position
+        self.center = self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.position
         self.center.x_val += cx
         self.center.y_val += cy
 
@@ -121,13 +124,13 @@ class OrbiterImager:
         print('Arm Drone...')
         self.drone_control.client.armDisarm(True)
 
-        start = self.drone_control.client.getMultirotorState().kinematics_estimated.position
-        landed = self.drone_control.client.getMultirotorState().landed_state
+        start = self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.position
+        landed = self.drone_control.getMultirotorState(self.droneID).landed_state
         if not self.takeoff and landed == airsim.LandedState.Landed:
             self.takeoff = True
             print('Taking off...')
-            self.drone_control.client.takeoffAsync().join()
-            start = self.drone_control.client.getMultirotorState().kinematics_estimated.position
+            self.drone_control.client.takeoffAsync(self.droneID).join()
+            start = self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.position
             z = -self.altitude + self.home.z_val
         else:
             print(f'Already Flown @ {start.z_val}')
@@ -160,7 +163,7 @@ class OrbiterImager:
             lookahead_angle = speed / self.radius
 
             # compute current angle
-            pos = self.drone_control.client.getMultirotorState().kinematics_esetimated.position
+            pos = self.drone_control.client.getMultirotorState(self.droneID).kinematics_esetimated.position
             dx = pos.x_val - self.center.x_val
             dy = pos.y_val - self.center.y_val
             actual_radius = math.sqrt((dx*dx) + (dy*dy))
@@ -185,7 +188,8 @@ class OrbiterImager:
             self.drone_control.client.moveByVelocityZAsync(
                 vx, vy, z, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, camera_heading)
             )
-        self.drone_control.client.moveToPositionAsync(start.x_val, start.y_val, z, 2).join()
+        self.drone_control.moveDrone(drone=self.droneID, position=[start.x_val, start.y_val, z], duration=2)
+
 
     def track_orbits(self, angle):
         if angle < 0:
@@ -245,28 +249,47 @@ class OrbiterImager:
             return 1
 
 if __name__ == '__main__':
+    """
+    Settings.json
+    {
+        "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
+        "SettingsVersion": 1.2,
+        "ClockSpeed": 5,
+        "ViewMode": "FlyWithMe",
+        "SimMode": "Multirotor",
+        "Vehicles": {
+            "ShooterDrone": {
+                "VehicleType": "SimpleFlight",
+                "X": 2, "Y": 0, "Z": -2
+            },
+            "TargetDrone": {
+                "VehicleType": "SimpleFlight",
+                "X": 4, "Y": 0, "Z": -2
+            }
+        }
+    }
+    """
     print('Start')
     droneID = ['TargetDrone, ShooterDrone']
     dc = DroneControl(droneID)
 
     dc.takeOff()
     # Check landed state
-    target_landed_state = dc.client.getMultirotorState(droneID[0]).landed_state
-    shooter_landed_state = dc.client.getMultirotorState(droneID[1]).landed_state
+    landed_state = dc.client.getMultirotorState(droneID[1]).landed_state
 
-    if target_landed_state == airsim.LandedState.Landed or shooter_landed_state == airsim.LandedState.Landed:
+    if landed_state == airsim.LandedState.Landed:
         print('Take Off')
-        pos = dc.client.getMultirotorState().kinematics_estimated.position
+        pos = dc.client.getMultirotorState(droneID[1]).kinematics_estimated.position
         z = pos.z_val - 1
         dc.takeOff()
     else:
         print('Already flying')
         dc.client.hover()
-        pos = dc.client.getMultirotorState().kinematics_estimated.position
+        pos = dc.client.getMultirotorState(droneID[1]).kinematics_estimated.position
         z = pos.z_val
     
     # Create OrbitImager object
-    oi = OrbiterImager(2, 0, z, dc, -20, 0.4, 3, 1, 2, 1, snapshots_count=30, image_dir='./images/')
+    oi = OrbiterImager(2, 0, z, dc,droneID[1], -20, 0.4, 3, 1, 2, 1, snapshots_count=30, image_dir='./images/')
+    oi.start()
 
-    
     
