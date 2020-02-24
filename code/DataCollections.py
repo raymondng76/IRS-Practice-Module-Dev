@@ -11,7 +11,8 @@ https://github.com/microsoft/DroneRescue
 import time
 import math
 import airsim
-from code.DroneControlAPI import DroneControl
+import os
+from DroneControlAPI import DroneControl
 
 class OrbiterImager:
     def __init__(self, 
@@ -48,6 +49,17 @@ class OrbiterImager:
         self.image_dir = image_dir
         self.drone_control = drone_control
         self.droneID = droneID
+        self.takeoff = True
+        self.z = None
+        self.snapshot_index = 0
+        self.photo_prefix = 'photo_'
+        self.snapshots = snapshots_count
+
+        if self.snapshots is not None and self.snapshots > 0:
+            self.snapshot_delta = 360 / self.snapshots
+
+        if self.iterations <= 0:
+            self.iterations = 1
 
         x = cx - radius
         y = cy
@@ -59,10 +71,10 @@ class OrbiterImager:
 
         # Move to start orbit position
         print('Move to start position.')
-        self.drone_control.moveToPositionAsync(
+        self.drone_control.client.moveToPositionAsync(
             x, y, z, 1, 60, 
             drivetrain=airsim.DrivetrainType.MaxDegreeOfFreedom,
-            yaw_mode=airsim.YawMode(False, 0)
+            yaw_mode=airsim.YawMode(False, 0), vehicle_name=self.droneID
         ).join()
         pos = self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.position
 
@@ -77,7 +89,7 @@ class OrbiterImager:
             self.drone_control.client.moveToPositionAsync(
                 x, y, z, 0.25, 60,
                 drivetrain=airsim.DrivetrainType.MaxDegreeOfFreedom,
-                yaw_mode=airsim.YawMode(False, 0)
+                yaw_mode=airsim.YawMode(False, 0), vehicle_name=self.droneID
             ).join()
             pos = self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.position
             dx = x - pos.x_val
@@ -138,7 +150,7 @@ class OrbiterImager:
         
         print(f'Climbing to pos: {start.x_val}, {start.y_val}, {z}')
         self.drone_control.client.moveToPositionAsync(
-            start.x_val, start.y_val, z, self.speed
+            start.x_val, start.y_val, z, self.speed, vehicle_name=self.droneID
         ).join()
         self.z = z
 
@@ -163,7 +175,7 @@ class OrbiterImager:
             lookahead_angle = speed / self.radius
 
             # compute current angle
-            pos = self.drone_control.client.getMultirotorState(self.droneID).kinematics_esetimated.position
+            pos = self.drone_control.client.getMultirotorState(self.droneID).kinematics_estimated.position
             dx = pos.x_val - self.center.x_val
             dy = pos.y_val - self.center.y_val
             actual_radius = math.sqrt((dx*dx) + (dy*dy))
@@ -186,7 +198,7 @@ class OrbiterImager:
             
             self.camera_heading = camera_heading
             self.drone_control.client.moveByVelocityZAsync(
-                vx, vy, z, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, camera_heading)
+                vx, vy, z, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, camera_heading), vehicle_name=self.droneID
             )
         self.drone_control.moveDrone(drone=self.droneID, position=[start.x_val, start.y_val, z], duration=2)
 
@@ -232,7 +244,7 @@ class OrbiterImager:
         
         if self.quarter and self.previous_diff is not None and diff != self.previous_diff:
             direction = self.sign(self.previous_diff - diff)
-            if self.pervious_sign is None:
+            if self.previous_sign is None:
                 self.previous_sign = direction
             elif self.previous_sign > 0 and direction < 0:
                 if diff < 45:
@@ -243,10 +255,30 @@ class OrbiterImager:
         self.previous_diff = diff
         return crossing
 
-        def sign(self, s):
-            if s < 0:
-                return -1
-            return 1
+    def take_snapshot(self):
+        if not os.path.exists(self.image_dir):
+            os.makedirs(self.image_dir)
+
+        # first hold our current position so drone doesn't try and keep flying while we take the picture.
+        pos = self.drone_control.getMultirotorState(self.droneID).kinematics_estimated.position
+        self.drone_control.client.moveToPositionAsync(pos.x_val, pos.y_val, self.z, 0.25, 3, airsim.DrivetrainType.MaxDegreeOfFreedom,
+                                        airsim.YawMode(False, self.camera_heading), vehicle_name=self.droneID)
+        responses = self.drone_control.client.simGetImages([airsim.ImageRequest(
+            0, airsim.ImageType.Scene)], vehicle_name=self.droneID)  # scene vision image in png format
+        response = responses[0]
+        filename = self.photo_prefix + \
+            str(self.snapshot_index) + "_" + str(int(time.time()))
+        self.snapshot_index += 1
+        airsim.write_file(os.path.normpath(
+            self.image_dir + filename + '.png'), response.image_data_uint8)
+        print("Saved snapshot: {}".format(filename))
+        # cause smooth ramp up to happen again after photo is taken.
+        self.start_time = time.time()
+
+    def sign(self, s):
+        if s < 0:
+            return -1
+        return 1
 
 if __name__ == '__main__':
     """
@@ -270,10 +302,10 @@ if __name__ == '__main__':
     }
     """
     print('Start')
-    droneID = ['TargetDrone, ShooterDrone']
+    droneID = ['TargetDrone', 'ShooterDrone']
     dc = DroneControl(droneID)
 
-    dc.takeOff()
+    
     # Check landed state
     landed_state = dc.client.getMultirotorState(droneID[1]).landed_state
 
@@ -289,7 +321,19 @@ if __name__ == '__main__':
         z = pos.z_val
     
     # Create OrbitImager object
-    oi = OrbiterImager(2, 0, z, dc,droneID[1], -20, 0.4, 3, 1, 2, 1, snapshots_count=30, image_dir='./images/')
+    oi = OrbiterImager(
+        cx=2, 
+        cy=0, 
+        z=z, 
+        drone_control=dc,
+        droneID=droneID[1], 
+        camera_angle=-20, 
+        radius=0.4, 
+        altitude=10, 
+        speed=2, 
+        iterations=1, 
+        snapshots_count=30, 
+        image_dir='./images/')
     oi.start()
 
     
