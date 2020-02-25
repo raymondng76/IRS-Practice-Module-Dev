@@ -320,6 +320,8 @@ if __name__ == '__main__':
         pos = dc.client.getMultirotorState(droneID[1]).kinematics_estimated.position
         z = pos.z_val
     
+    dc.moveDrone(droneID[0], (2, 0, -5), 0.5)
+
     # Create OrbitImager object
     oi = OrbiterImager(
         cx=2, 
