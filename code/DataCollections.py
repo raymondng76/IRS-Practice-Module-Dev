@@ -238,7 +238,7 @@ class OrbitNavigator:
             return -1
         return 1
 
-def OrbitAnimal(cx, cy, radius, speed, altitude, camera_angle, animal, id):
+def Orbit(cx, cy, radius, speed, altitude, camera_angle, drone, id, folder):
     """
     @param cx: The x position of our orbit starting location
     @param cy: The x position of our orbit starting location
@@ -246,7 +246,7 @@ def OrbitAnimal(cx, cy, radius, speed, altitude, camera_angle, animal, id):
     @param speed: The speed the drone should more, it's hard to take photos when flying fast
     @param altitude: The altidude we want to fly at, dont fly too high!
     @param camera_angle: The angle of the camera
-    @param animal: The name of the animal, used to prefix the photos
+    @param drone: The name of the drone, used to prefix the photos
     """
 
     x = cx - radius
@@ -286,14 +286,16 @@ def OrbitAnimal(cx, cy, radius, speed, altitude, camera_angle, animal, id):
     print("yaw is {}".format(o[2]))
 
     # let's orbit around the animal and take some photos
-    nav = OrbitNavigator(photo_prefix=animal, radius=radius, altitude=altitude, speed=speed, iterations=1, center=[
-                                     cx - pos.x_val, cy - pos.y_val], snapshots=30, image_dir="./drone_images/", id=id)
+    folder = "./drone_images/" + folder
+    nav = OrbitNavigator(photo_prefix=drone, radius=radius, altitude=altitude, speed=speed, iterations=1, center=[
+                                     cx - pos.x_val, cy - pos.y_val], snapshots=30, image_dir=folder, id=id)
     nav.start()
 
 
 def land():
     print("landing...")
-    client.landAsync().join()
+    client.landAsync(vehicle_name='ShooterDrone').join()
+    client.landAsync(vehicle_name='TargetDrone').join()
     print("disarming.")
     client.armDisarm(False)
 
@@ -301,6 +303,7 @@ def land():
     client.enableApiControl(False)
 
 if __name__ == '__main__':
+
     # Conect with the airsim server
     print("Start")
     sd = 'ShooterDrone'
@@ -313,9 +316,6 @@ if __name__ == '__main__':
     client.armDisarm(True, vehicle_name=td)
     print("Armed")
     client.takeoffAsync(vehicle_name=td).join()
-    # tpos = client.getMultirotorState(vehicle_name=td).kinematics_estimated.position
-    # print(f'x = {tpos.x_val}, y = {tpos.y_val}, z = {tpos.z_val}')
-    # client.moveByVelocityZAsync(0, 0, 0.05,2, vehicle_name=td)
 
     # Check State and takeoff if required
     landed = client.getMultirotorState(vehicle_name=sd).landed_state
@@ -332,38 +332,12 @@ if __name__ == '__main__':
         z = pos.z_val
 
     # Start the navigation task
+    alt = 0.2
+    deg = 0
+    folder = 'FootballField'
+    filename = "Drone_" + "Alt" + str(alt) + "_Deg" + str(deg) + "_"
+    Orbit(4, 0, 3, 0.4, alt, deg, filename, id=sd, folder=folder)
 
-    # OrbitAnimal(19.6, 9.6, 2, 0.4, 1, -30, "BlackSheep")
-
-    #OrbitAnimal(-12.18, -13.56, 2, 0.4, 1, -30, "AlpacaRainbow")
-
-    # OrbitAnimal(-12.18, -13.56, 3, 0.4, 1, -20, "AlpacaRainbow")
-    OrbitAnimal(4, 0, 3, 0.4, 1.2, 0, "Drone_Alt", id=sd)
-
-    # animals = [(19.8, -11, "AlpacaPink"),
-    #    (5.42, -3.7, "AlpacaTeal"),
-    #    (-12.18, -13.56, "AlpacaRainbow"),
-    #    (19.6, 9.6, "BlackSheep"),
-    #    (-1.9, -0.9, "Bunny"),
-    #    (3.5, 9.4, "Chick"),
-    #    (-13.2, -0.25, "Chipmunk"),
-    #    (-6.55, 12.25, "Hippo")]
-
-    #configurations = [(2, 0.4, 1, -30), (3, 0.4, 1, -20)]
-    #
-    # let's find the animals and take some photos
-    # for config in configurations:
-    #    for animal in animals:
-    #        print("Target animal:" + str(animal[2]))
-    #        radius = config[0]
-    #        speed = config[1]
-    #        camera_angle = config[2]
-
-    #        OrbitAnimal(animal[0], animal[1], radius, speed, 1, camera_angle, animal[2])
-
-    #OrbitAnimal(15, 1.0, 2, 0.4, 1, -30, "Unicorn")
-
-    # that's enough fun for now. let's quit cleanly
     land()
 
     print("Image capture complete...")
