@@ -7,6 +7,8 @@ import config
 
 from DroneControlAPI import DroneControl
 
+from geopy import distance
+
 clockspeed = 1
 timeslice = 0.5 / clockspeed
 goalY = 57
@@ -57,7 +59,7 @@ class Env:
         # Calculations for Drone1
         has_collided = False
         landed = False
-        self.dc.moveDrone('Drone1', [quad_offset[0], quad_offset[1], quad_offset[2]], timeslice)
+        #self.dc.moveDrone('Drone1', [quad_offset[0], quad_offset[1], quad_offset[2]], timeslice)
         self.dc.moveDrone('Drone1', [quad_vel.x_val+quad_offset[0], quad_vel.y_val+quad_offset[1], quad_vel.z_val+quad_offset[2]], timeslice)
         collision_count = 0
         start_time = time.time()
@@ -82,6 +84,18 @@ class Env:
         # observe with depth camera
         #responses = self.client.simGetImages([airsim.ImageRequest(1, airsim.ImageType.DepthVis, True)])
         responses = []
+        # get distance between follower and target
+        gps_drone1 = self.dc.getGpsData('Drone1')
+        gps_drone2 = self.dc.getGpsData('Drone2')
+        gps_drone3 = self.dc.getGpsData('Drone3')
+        gps_droneTarget = self.dc.getGpsData('DroneTarget')
+        
+        gps_dist = []
+        target = (gps_droneTarget.latitude, gps_droneTarget.longitude)
+        for x in [gps_drone1, gps_drone2, gps_drone3]:
+            source = (x.latitude, x.longitude)
+            gps_dist.append(distance.distance(source, target).m)
+        
         # get quadrotor states
         quad_pos = self.dc.getMultirotorState("Drone1").kinematics_estimated.position
         quad_vel = self.dc.getMultirotorState("Drone1").kinematics_estimated.linear_velocity
@@ -109,7 +123,7 @@ class Env:
         else:
             info['status'] = 'going'
         quad_vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val])
-        observation = [responses, quad_vel]
+        observation = [responses, gps_dist, quad_vel]
         return observation, reward, done, info
 
     def compute_reward(self, quad_pos, quad_vel, dead):
@@ -130,6 +144,31 @@ class Env:
         # else:
         #     reward = config.reward['normal']
         return reward
+    
+    
+    def lineseg_dists(self, p, a, b):
+        # Ref: https://stackoverflow.com/questions/54442057/calculate-the-euclidian-distance-between-an-array-of-points-to-a-line-segment-in/54442561#54442561
+        # Gets distance between point p and line ab
+        
+        if np.all(a - b):
+            return np.linalg.norm(p - a, axis=1)
+
+        # normalized tangent vector
+        d = np.divide(b - a, np.linalg.norm(b - a))
+
+        # signed parallel distance components
+        s = np.dot(a - p, d)
+        t = np.dot(p - b, d)
+
+        # clamped parallel distance
+        h = np.maximum.reduce([s, t, np.zeros(len(p))])
+
+        # perpendicular distance component, as before
+        # note that for the 3D case these will be vectors
+        c = np.cross(p - a, d)
+
+        # use hypot for Pythagoras to improve accuracy
+        return np.hypot(h, c)
     
     def disconnect(self):
         #self.client.enableApiControl(False)

@@ -51,11 +51,15 @@ while True:
         timestep += 1
         action = agent.get_action()
         action = interpret_action(action)
-        _, reward, done, info = env.step(action)
+        observation, reward, done, info = env.step(action)
+        
+        responses, gps_dist, quad_vel = observation
+        
         score += reward
 
         # stack history here
         print('Step %d Action %s Reward %.2f Info %s:' % (timestep, action, reward, info))
+        print(f'gps dist from target for drones 1,2,3: {gps_dist}')
     # done
     print('Ep %d: Step %d Score %.3f' % (episode, timestep, score))
     episode += 1
