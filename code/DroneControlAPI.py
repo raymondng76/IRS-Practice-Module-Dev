@@ -95,12 +95,14 @@ class DroneControl:
         else:
             print('Drone does not exists!')
     
-    def getGpsData(self, gps, drone):
+    def getGpsData(self, drone):
         """
         Method to get gps data
+        Returns GeoPoint object containing altitude, latitude and longitude
         """
         if drone in self.droneList:
-            return self.client.getGpsData(gps_name=gps, vehicle_name=drone)
+            #return self.client.getGpsData(gps_name=gps, vehicle_name=drone)
+            return self.client.getMultirotorState(vehicle_name=drone).gps_location
         else:
             print('Drone does not exists!')
     

@@ -7,7 +7,7 @@
   "SubWindows": [
     {"WindowID": 0, "CameraName": "0", "ImageType": 3, "Visible": false},
     {"WindowID": 1, "CameraName": "0", "ImageType": 5, "Visible": false},
-    {"WindowID": 2, "CameraName": "0", "ImageType": 0, "Visible": false}
+    {"WindowID": 2, "CameraName": "0", "ImageType": 0, "Visible": false}    
   ],
   "Vehicles": {
 	"Drone1": {
@@ -34,6 +34,15 @@
 			"Distance1": {
 				"SensorType": 5,
 				"Enabled": true
+			},
+			"Lidar1": {
+				"SensorType": 6,
+				"Enabled": true,
+				"NumberOfChannels": 16,
+				"RotationsPerSecond": 10,
+				"PointsPerSecond": 10000,
+				"DrawDebugPoints": true,
+				"DataFrame": "SensorLocalFrame"
 			}
 		}
 	},
@@ -60,6 +69,15 @@
 			"Distance1": {
 				"SensorType": 5,
 				"Enabled": true
+			},
+			"Lidar1": {
+				"SensorType": 6,
+				"Enabled": true,
+				"NumberOfChannels": 16,
+				"RotationsPerSecond": 10,
+				"PointsPerSecond": 10000,
+				"DrawDebugPoints": true,
+				"DataFrame": "SensorLocalFrame"
 			}
 		}
 	},
@@ -86,22 +104,21 @@
 			"Distance1": {
 				"SensorType": 5,
 				"Enabled": true
+			},
+			"Lidar1": {
+				"SensorType": 6,
+				"Enabled": true,
+				"NumberOfChannels": 16,
+				"RotationsPerSecond": 10,
+				"PointsPerSecond": 10000,
+				"DrawDebugPoints": true,
+				"DataFrame": "SensorLocalFrame"
 			}
 		}
 	},
 	"DroneTarget": {
 		"VehicleType": "SimpleFlight",
-		"X": 4, "Y": 0, "Z": -2,
-		"Sensors": {
-			"Gps1": {
-				"SensorType": 3,
-				"Enabled": true
-			},
-			"Distance1": {
-				"SensorType": 5,
-				"Enabled": true
-			}
-		}
+		"X": 4, "Y": 0, "Z": -2
 	}
   }
 }
