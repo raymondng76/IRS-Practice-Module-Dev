@@ -1,4 +1,5 @@
 import cv2
+import argparse
 import numpy as np
 from scipy.special import expit
 from keras.models import load_model
@@ -50,6 +51,11 @@ class YoloPredictor:
         for j in range(len(yolos)):
             yolo_anchors = self.anchors[(2-j)*6:(3-j)*6]
             boxes += self.decode_netout(yolos[j], yolo_anchors)
+        
+        self.correct_yolo_boxes(boxes, image.shape[0], image.shape[1])
+
+        self.do_nms(boxes)
+        return boxes
 
     def preprocess_input(self, image):
         new_h, new_w, _ = image.shape
@@ -111,7 +117,72 @@ class YoloPredictor:
                 boxes.append(box)
 
         return boxes
+
+    def correct_yolo_boxes(self, boxes, image_h, image_w):
+        if (float(self.net_w)/image_w) < (float(self.net_h)/image_h):
+            new_w = self.net_w
+            new_h = (image_h*self.net_w)/image_w
+        else:
+            new_h = self.net_w
+            new_w = (image_w*self.net_h)/image_h
+            
+        for i in range(len(boxes)):
+            x_offset, x_scale = (self.net_w - new_w)/2./self.net_w, float(new_w)/self.net_w
+            y_offset, y_scale = (self.net_h - new_h)/2./self.net_h, float(new_h)/self.net_h
+            
+            boxes[i].xmin = int((boxes[i].xmin - x_offset) / x_scale * image_w)
+            boxes[i].xmax = int((boxes[i].xmax - x_offset) / x_scale * image_w)
+            boxes[i].ymin = int((boxes[i].ymin - y_offset) / y_scale * image_h)
+            boxes[i].ymax = int((boxes[i].ymax - y_offset) / y_scale * image_h)
         
+    def do_nms(self, boxes):
+        if len(boxes) > 0:
+            nb_class = len(boxes[0].classes)
+        else:
+            return
+            
+        for c in range(nb_class):
+            sorted_indices = np.argsort([-box.classes[c] for box in boxes])
+
+            for i in range(len(sorted_indices)):
+                index_i = sorted_indices[i]
+
+                if boxes[index_i].classes[c] == 0: continue
+
+                for j in range(i+1, len(sorted_indices)):
+                    index_j = sorted_indices[j]
+
+                    if self.bbox_iou(boxes[index_i], boxes[index_j]) >= self.nms_thresh:
+                        boxes[index_j].classes[c] = 0
+    
+    def bbox_iou(self, box1, box2):
+        intersect_w = self.interval_overlap([box1.xmin, box1.xmax], [box2.xmin, box2.xmax])
+        intersect_h = self.interval_overlap([box1.ymin, box1.ymax], [box2.ymin, box2.ymax])  
+        
+        intersect = intersect_w * intersect_h
+
+        w1, h1 = box1.xmax-box1.xmin, box1.ymax-box1.ymin
+        w2, h2 = box2.xmax-box2.xmin, box2.ymax-box2.ymin
+        
+        union = w1*h1 + w2*h2 - intersect
+        
+        return float(intersect) / union
+    
+    def interval_overlap(self, interval_a, interval_b):
+        x1, x2 = interval_a
+        x3, x4 = interval_b
+
+        if x3 < x1:
+            if x4 < x1:
+                return 0
+            else:
+                return min(x2,x4) - x1
+        else:
+            if x2 < x3:
+                return 0
+            else:
+                return min(x2,x4) - x3 
+
     def sigmoid(self, x):
         return expit(x)
     
@@ -120,10 +191,51 @@ class YoloPredictor:
         e_x = np.exp(x)
         return e_x / e_x.sum(axis, keepdims=True)
 
+# def draw_boxes(image, boxes, labels, obj_thresh, quiet=True):
+#     for box in boxes:
+#         label_str = ''
+#         label = -1
+        
+#         for i in range(len(labels)):
+#             if box.classes[i] > obj_thresh:
+#                 if label_str != '': label_str += ', '
+#                 label_str += (labels[i] + ' ' + str(round(box.get_score()*100, 2)) + '%')
+#                 label = i
+#             if not quiet: print(label_str)
+                
+#         if label >= 0:
+#             text_size = cv2.getTextSize(label_str, cv2.FONT_HERSHEY_SIMPLEX, 1.1e-3 * image.shape[0], 1)
+#             width, height = text_size[0][0], text_size[0][1]
+#             region = np.array([[box.xmin-3,        box.ymin], 
+#                                [box.xmin-3,        box.ymin-height-26], 
+#                                [box.xmin+width+13, box.ymin-height-26], 
+#                                [box.xmin+width+13, box.ymin]], dtype='int32')  
+
+#             cv2.rectangle(img=image, pt1=(box.xmin,box.ymin), pt2=(box.xmax,box.ymax), color=get_color(label), thickness=1)
+#             cv2.fillPoly(img=image, pts=[region], color=get_color(label))
+#             cv2.putText(img=image, 
+#                         text=label_str, 
+#                         org=(box.xmin+13, box.ymin - 13), 
+#                         fontFace=cv2.FONT_HERSHEY_SIMPLEX, 
+#                         fontScale=1e-3 * image.shape[0], 
+#                         color=(0,0,0), 
+#                         thickness=1)
+        
+#     return image         
+
 if __name__ == '__main__':
-    path = 'images\AfricaDrone_Alt0.2_Deg0_0_1582957164.png'
-    model_path = '..\weights\drone.h5'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i','--image-path', type=str, default='image.png', help='Path to input image')
+    parser.add_argument('-w','--weights-path', type=str, default='drone.h5', help='Path to the trained Yolov3 weights')
+    opt = parser.parse_args()
+
+    image_path = opt.image_path
+    model_path = opt.weights_path
+
     yp = YoloPredictor(model_path)
-    output = yp.predict(path)
-    print(f'output = {output.shape}')
-    print(len(output))
+    bb_out = yp.predict(image_path)
+    print(f'XMIN: {bb_out[0].xmin}')
+    print(f'XMAX: {bb_out[0].xmax}')
+    print(f'YMIN: {bb_out[0].ymin}')
+    print(f'YMAX: {bb_out[0].ymax}')
+    
