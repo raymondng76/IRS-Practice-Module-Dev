@@ -55,7 +55,7 @@ class YoloPredictor:
         self.correct_yolo_boxes(boxes, image.shape[0], image.shape[1])
 
         self.do_nms(boxes)
-        return boxes
+        return boxes[0]
 
     def preprocess_input(self, image):
         new_h, new_w, _ = image.shape
@@ -234,8 +234,8 @@ if __name__ == '__main__':
 
     yp = YoloPredictor(model_path)
     bb_out = yp.predict(image_path)
-    print(f'XMIN: {bb_out[0].xmin}')
-    print(f'XMAX: {bb_out[0].xmax}')
-    print(f'YMIN: {bb_out[0].ymin}')
-    print(f'YMAX: {bb_out[0].ymax}')
+    print(f'XMIN: {bb_out.xmin}')
+    print(f'XMAX: {bb_out.xmax}')
+    print(f'YMIN: {bb_out.ymin}')
+    print(f'YMAX: {bb_out.ymax}')
     
