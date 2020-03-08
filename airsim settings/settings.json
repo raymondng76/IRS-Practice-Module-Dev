@@ -4,6 +4,14 @@
   "ClockSpeed": 1,
   "ViewMode": "FlyWithMe",
   "SimMode": "Multirotor",
+  "CameraDefaults": {
+	"CaptureSettings": [
+	{
+		"Width": 352,
+		"Height": 224
+	}
+    ]
+  },
   "SubWindows": [
     {"WindowID": 0, "CameraName": "0", "ImageType": 3, "Visible": false},
     {"WindowID": 1, "CameraName": "0", "ImageType": 5, "Visible": false},
