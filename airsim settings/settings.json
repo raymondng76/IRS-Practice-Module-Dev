@@ -21,7 +21,7 @@
 	"Drone1": {
 		"VehicleType": "SimpleFlight",
 		"AutoCreate": true,
-		"X": 2, "Y": 0, "Z": -2,
+		"X": 0.2, "Y": 0, "Z": -2,
 		"Sensors": {
 			"Barometer1": {
 				"SensorType": 1,
