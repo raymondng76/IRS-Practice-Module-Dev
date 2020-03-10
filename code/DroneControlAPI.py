@@ -7,6 +7,7 @@ Intelligent Robotic Systems Practice Module
 
 import airsim
 import time
+import math
 import numpy as np
 
 class DroneControl:
@@ -176,3 +177,17 @@ class DroneControl:
         Pass-through method for hoverAsync
         """
         return self.client.hoverAsync(drone)
+
+    def setCameraOrientation(self, camera_angle):
+        """
+        Set camera orientation
+        """
+        for drone in self.droneList:
+            self.client.simSetCameraOrientation(
+                0, airsim.to_quaternion(camera_angle * math.pi / 180, 0, 0),vehicle_name=drone)
+    
+    def getImage(self, drone):
+        """
+        Get image for single drone
+        """
+        return self.client.simGetImage('0', airsim.ImageType.Scene,vehicle_name=drone)
