@@ -178,16 +178,16 @@ class DroneControl:
         """
         return self.client.hoverAsync(drone)
 
-    def setCameraOrientation(self, camera_angle):
+    def setCameraOrientation(self, camera_angle, drone):
         """
         Set camera orientation
         """
-        for drone in self.droneList:
-            self.client.simSetCameraOrientation(
-                0, airsim.to_quaternion(camera_angle * math.pi / 180, 0, 0),vehicle_name=drone)
+        self.client.simSetCameraOrientation(0, airsim.to_quaternion(camera_angle * math.pi / 180, 0, 0),vehicle_name=drone)
     
     def getImage(self, drone):
         """
         Get image for single drone
         """
-        return self.client.simGetImage('0', airsim.ImageType.Scene,vehicle_name=drone)
+        # return self.client.simGetImage('0', airsim.ImageType.Scene,vehicle_name=drone)
+        return self.client.simGetImages([airsim.ImageRequest(
+            0, airsim.ImageType.Scene)],vehicle_name=drone)
