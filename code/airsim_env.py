@@ -6,8 +6,9 @@ import airsim
 import config
 
 from DroneControlAPI import DroneControl
-
+from yolov3_inference import *
 from geopy import distance
+
 
 clockspeed = 1
 timeslice = 0.5 / clockspeed
@@ -19,11 +20,14 @@ speed_limit = 0.2
 ACTION = ['00', '+x', '+y', '+z', '-x', '-y', '-z']
 
 droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
+yolo_weights = 'weights\drone.h5'
 
 class Env:
     def __init__(self):
         # connect to the AirSim simulator
         self.dc = DroneControl(droneList)
+        # Load the inference model
+        self.infer_model = YoloPredictor(yolo_weights)
         self.action_size = 3
         self.level = 0
 
@@ -39,6 +43,10 @@ class Env:
             self.dc.moveDrone(drone, [0,0,0], 0.1 * timeslice)
             self.dc.hoverAsync(drone).join()
         
+        # calibrate drone2 and drone3 camera heading
+        self.dc.setCameraHeading(-120, droneList[1])
+        self.dc.setCameraHeading(120, droneList[2])
+
         self.dc.simPause(True)
         quad_vel = self.dc.getMultirotorState("Drone1").kinematics_estimated.linear_velocity
         #responses = self.client.simGetImages([airsim.ImageRequest(1, airsim.ImageType.DepthVis, True)])
@@ -83,7 +91,11 @@ class Env:
 
         # observe with depth camera
         #responses = self.client.simGetImages([airsim.ImageRequest(1, airsim.ImageType.DepthVis, True)])
-        responses = []
+        drone1_img = self.dc.getImage('Drone1')
+        drone2_img = self.dc.getImage('Drone2')
+        drone3_img = self.dc.getImage('Drone3')
+
+        # responses = []
         # get distance between follower and target
         gps_drone1 = self.dc.getGpsData('Drone1')
         gps_drone2 = self.dc.getGpsData('Drone2')
