@@ -178,11 +178,12 @@ class DroneControl:
         """
         return self.client.hoverAsync(drone)
 
-    def setCameraOrientation(self, camera_angle, drone):
+    def setCameraHeading(self, camera_angle, drone):
         """
         Set camera orientation
         """
-        self.client.simSetCameraOrientation(0, airsim.to_quaternion(camera_angle * math.pi / 180, 0, 0),vehicle_name=drone)
+        pos = self.getMultirotorState(drone).kinematics_estimated.position
+        self.client.moveByVelocityZAsync(pos.x_val, pos.y_val, pos.z_val, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, camera_angle), vehicle_name=drone)
     
     def getImage(self, drone):
         """
@@ -190,4 +191,4 @@ class DroneControl:
         """
         # return self.client.simGetImage('0', airsim.ImageType.Scene,vehicle_name=drone)
         return self.client.simGetImages([airsim.ImageRequest(
-            0, airsim.ImageType.Scene)],vehicle_name=drone)
+            "0", airsim.ImageType.Scene, False, False)],vehicle_name=drone)
