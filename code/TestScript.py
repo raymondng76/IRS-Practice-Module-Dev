@@ -6,7 +6,10 @@ import math
 import numpy as np
 import cv2
 from DroneControlAPI import DroneControl
-# from yolov3_inference import *
+from yolov3_inference import *
+
+yolo = YoloPredictor('..\weights\drone.h5')
+
 
 droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
 dc = DroneControl(droneList)
@@ -45,6 +48,24 @@ airsim.wait_key('Get images')
 img1 = dc.getImage(droneList[0])
 img2 = dc.getImage(droneList[1])
 img3 = dc.getImage(droneList[2])
+bb1_out = yolo.get_yolo_boxes(img1[:,:,:3])
+bb2_out = yolo.get_yolo_boxes(img2[:,:,:3])
+bb3_out = yolo.get_yolo_boxes(img3[:,:,:3])
+print('BB1')
+print(f'XMIN: {bb1_out.xmin}')
+print(f'XMAX: {bb1_out.xmax}')
+print(f'YMIN: {bb1_out.ymin}')
+print(f'YMAX: {bb1_out.ymax}')
+print('BB3')
+print(f'XMIN: {bb2_out.xmin}')
+print(f'XMAX: {bb2_out.xmax}')
+print(f'YMIN: {bb2_out.ymin}')
+print(f'YMAX: {bb2_out.ymax}')
+print('BB2')
+print(f'XMIN: {bb3_out.xmin}')
+print(f'XMAX: {bb3_out.xmax}')
+print(f'YMIN: {bb3_out.ymin}')
+print(f'YMAX: {bb3_out.ymax}')
 
 # img1 = cv2.imdecode(airsim.string_to_uint8_array(img1raw), cv2.IMREAD_UNCHANGED)
 # img2 = cv2.imdecode(airsim.string_to_uint8_array(img2raw), cv2.IMREAD_UNCHANGED)
