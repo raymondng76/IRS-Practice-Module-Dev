@@ -8,6 +8,7 @@ Intelligent Robotic Systems Practice Module
 import airsim
 import time
 import math
+import cv2
 import numpy as np
 
 class DroneControl:
@@ -189,6 +190,5 @@ class DroneControl:
         """
         Get image for single drone
         """
-        # return self.client.simGetImage('0', airsim.ImageType.Scene,vehicle_name=drone)
-        return self.client.simGetImages([airsim.ImageRequest(
-            "0", airsim.ImageType.Scene, False, False)],vehicle_name=drone)
+        raw_img = self.client.simGetImage("0", airsim.ImageType.Scene, vehicle_name=drone)
+        return cv2.imdecode(airsim.string_to_uint8_array(raw_img), cv2.IMREAD_UNCHANGED)

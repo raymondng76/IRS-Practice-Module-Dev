@@ -4,6 +4,7 @@ import pprint
 import os
 import math
 import numpy as np
+import cv2
 from DroneControlAPI import DroneControl
 # from yolov3_inference import *
 
@@ -26,7 +27,7 @@ dc.takeOff()
 # print(f'pos = {pos}')
 
 airsim.wait_key('Set cam orientation')
-dc.moveDrone('DroneTarget', [0,0,0.4], 0.5)
+dc.moveDrone('DroneTarget', [0,0,1.4], 0.5)
 # d2camera_heading = (135 - math.pi) * 180 / math.pi
 # d3camera_heading = (225 - math.pi) * 180 / math.pi
 # print(f'D2 cam head: {d2camera_heading}')
@@ -45,17 +46,20 @@ img1 = dc.getImage(droneList[0])
 img2 = dc.getImage(droneList[1])
 img3 = dc.getImage(droneList[2])
 
-img1 = img1[0]
-img2 = img2[0]
-img3 = img3[0]
-img1d = np.fromstring(img1.image_data_uint8, dtype=np.uint8) 
-img1_rgb = img1d.reshape(img1.height, img1.width, 3)
-print(img1_rgb.shape)
+# img1 = cv2.imdecode(airsim.string_to_uint8_array(img1raw), cv2.IMREAD_UNCHANGED)
+# img2 = cv2.imdecode(airsim.string_to_uint8_array(img2raw), cv2.IMREAD_UNCHANGED)
+# img3 = cv2.imdecode(airsim.string_to_uint8_array(img3raw), cv2.IMREAD_UNCHANGED)
+# img1d = np.fromstring(img1.image_data_uint8, dtype=np.uint8) 
+# img1_rgb = img1d.reshape(img1.height, img1.width, 3)
+# img1_rgb = img1_rgb[:,:,:3]
+print(img1.shape)
+# cv2.imshow('img1', img1)
+# cv2.imshow('img2', img2)
+# cv2.imshow('img3', img3)
 
-airsim.write_file(os.path.normpath('img1.png'), img1.image_data_uint8)
-airsim.write_file(os.path.normpath('img2.png'), img2.image_data_uint8)
-airsim.write_file(os.path.normpath('img3.png'), img3.image_data_uint8)
-
+cv2.imwrite('img1.png', img1)
+cv2.imwrite('img2.png', img2)
+cv2.imwrite('img3.png', img3)
 
 
 # airsim.wait_key('Press any key to read sensors')
