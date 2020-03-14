@@ -5,11 +5,13 @@ import os
 import math
 import numpy as np
 import cv2
+from pathlib import Path
 from DroneControlAPI import DroneControl
 from yolov3_inference import *
 
-yolo = YoloPredictor('..\weights\drone.h5')
-
+#yolo = YoloPredictor('..\weights\drone.h5')
+base_dir = Path('..')
+yolo = YoloPredictor(base_dir/'weights'/'drone.h5')
 
 droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
 dc = DroneControl(droneList)
