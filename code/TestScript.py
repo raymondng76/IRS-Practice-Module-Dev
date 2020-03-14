@@ -8,7 +8,9 @@ import cv2
 from DroneControlAPI import DroneControl
 from yolov3_inference import *
 
-yolo = YoloPredictor('..\weights\drone.h5')
+## for windows path
+dirpath = os.getcwd()
+yolo = YoloPredictor(dirpath + '\weights\drone.h5')
 
 
 droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
