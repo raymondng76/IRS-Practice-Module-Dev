@@ -8,7 +8,8 @@
 	"CaptureSettings": [
 	{
 		"Width": 352,
-		"Height": 224
+		"Height": 224,
+		"FOV_Degrees": 90
 	}
     ]
   },
