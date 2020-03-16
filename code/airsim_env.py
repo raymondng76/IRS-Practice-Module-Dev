@@ -44,8 +44,8 @@ class Env:
             self.dc.hoverAsync(drone).join()
         
         # calibrate drone2 and drone3 camera heading
-        self.dc.setCameraHeading(-120, droneList[1])
-        self.dc.setCameraHeading(120, droneList[2])
+        self.dc.setCameraHeading(-100, droneList[1])
+        self.dc.setCameraHeading(100, droneList[2])
 
         self.dc.simPause(True)
         quad_vel = self.dc.getMultirotorState("Drone1").kinematics_estimated.linear_velocity

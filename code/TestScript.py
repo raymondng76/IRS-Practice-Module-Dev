@@ -15,10 +15,10 @@ yolo = YoloPredictor(base_dir/'weights'/'drone.h5')
 
 droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
 dc = DroneControl(droneList)
-
-airsim.wait_key('Press any key to take off')
+time.sleep(5)
+# airsim.wait_key('Press any key to take off')
 dc.takeOff()
-
+time.sleep(5)
 # airsim.wait_key('Press any key to read state')
 # state = pprint.pformat(dc.getMultirotorState('Drone1'))
 # print(f"State : {state}")
@@ -31,7 +31,7 @@ dc.takeOff()
 # pos = dc.getDronePos('Drone1')
 # print(f'pos = {pos}')
 
-airsim.wait_key('Set cam orientation')
+# airsim.wait_key('Set cam orientation')
 dc.moveDrone('DroneTarget', [0,0,1.4], 0.5)
 # d2camera_heading = (135 - math.pi) * 180 / math.pi
 # d3camera_heading = (225 - math.pi) * 180 / math.pi
@@ -42,14 +42,15 @@ dc.moveDrone('DroneTarget', [0,0,1.4], 0.5)
 # d3pos = dc.getMultirotorState('Drone3').kinematics_estimated.position
 # dc.client.moveByVelocityZAsync(d3pos.x_val, d3pos.y_val, d3pos.z_val, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 120), vehicle_name='Drone3')
 
-dc.setCameraHeading(-120, 'Drone2')
-dc.setCameraHeading(120, 'Drone3')
+dc.setCameraHeading(-100, 'Drone2')
+dc.setCameraHeading(100, 'Drone3')
+time.sleep(5)
 
-
-airsim.wait_key('Get images')
+# airsim.wait_key('Get images')
 img1 = dc.getImage(droneList[0])
 img2 = dc.getImage(droneList[1])
 img3 = dc.getImage(droneList[2])
+time.sleep(1)
 bb1_out = yolo.get_yolo_boxes(img1[:,:,:3])
 bb2_out = yolo.get_yolo_boxes(img2[:,:,:3])
 bb3_out = yolo.get_yolo_boxes(img3[:,:,:3])
@@ -83,7 +84,7 @@ print(img1.shape)
 cv2.imwrite('img1.png', img1)
 cv2.imwrite('img2.png', img2)
 cv2.imwrite('img3.png', img3)
-
+time.sleep(5)
 
 # airsim.wait_key('Press any key to read sensors')
 # baro = pprint.pformat(dc.GetBarometerData('Barometer1', 'Drone1'))
@@ -99,8 +100,8 @@ cv2.imwrite('img3.png', img3)
 # lidar = pprint.pformat(dc.GetLidarData('Lidar1', 'Drone1'))
 # print(f'Lidar : {lidar}')
 
-airsim.wait_key('Press any key to reset')
+# airsim.wait_key('Press any key to reset')
 dc.resetAndRearm_Drones()
 
-airsim.wait_key('Press any key to shutdown')
+# airsim.wait_key('Press any key to shutdown')
 dc.shutdown_AirSim()
