@@ -1,7 +1,7 @@
 {
   "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
   "SettingsVersion": 1.2,
-  "ClockSpeed": 1,
+  "ClockSpeed": 5,
   "ViewMode": "FlyWithMe",
   "SimMode": "Multirotor",
   "CameraDefaults": {
@@ -21,23 +21,10 @@
   "Vehicles": {
 	"Drone1": {
 		"VehicleType": "SimpleFlight",
-		"AutoCreate": true,
-		"X": 0.2, "Y": 0, "Z": -2,
+		"X": -6, "Y": 0, "Z": -2,
 		"Sensors": {
-			"Barometer1": {
-				"SensorType": 1,
-				"Enabled": true
-			},
-			"Imu1": {
-				"SensorType": 2,
-				"Enabled": true
-			},
 			"Gps1": {
 				"SensorType": 3,
-				"Enabled": true
-			},
-			"Magnetometer1": {
-				"SensorType": 4,
 				"Enabled": true
 			},
 			"Distance1": {
@@ -48,22 +35,10 @@
 	},
 	"Drone2": {
 		"VehicleType": "SimpleFlight",
-		"X": 6, "Y": 3, "Z": -2,
+		"X": 4.243, "Y": 6, "Z": -2,
 		"Sensors": {
-			"Barometer1": {
-				"SensorType": 1,
-				"Enabled": true
-			},
-			"Imu1": {
-				"SensorType": 2,
-				"Enabled": true
-			},
 			"Gps1": {
 				"SensorType": 3,
-				"Enabled": true
-			},
-			"Magnetometer1": {
-				"SensorType": 4,
 				"Enabled": true
 			},
 			"Distance1": {
@@ -74,22 +49,10 @@
 	},
 	"Drone3": {
 		"VehicleType": "SimpleFlight",
-		"X": 6, "Y": -3, "Z": -2,
+		"X": 4.243, "Y": -6, "Z": -2,
 		"Sensors": {
-			"Barometer1": {
-				"SensorType": 1,
-				"Enabled": true
-			},
-			"Imu1": {
-				"SensorType": 2,
-				"Enabled": true
-			},
 			"Gps1": {
 				"SensorType": 3,
-				"Enabled": true
-			},
-			"Magnetometer1": {
-				"SensorType": 4,
 				"Enabled": true
 			},
 			"Distance1": {
@@ -100,7 +63,7 @@
 	},
 	"DroneTarget": {
 		"VehicleType": "SimpleFlight",
-		"X": 4, "Y": 0, "Z": -2,
+		"X": 0, "Y": 0, "Z": -2,
 		"Sensors": {
 			"Gps1": {
 				"SensorType": 3,
