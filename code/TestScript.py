@@ -32,7 +32,7 @@ time.sleep(5)
 # print(f'pos = {pos}')
 
 # airsim.wait_key('Set cam orientation')
-dc.moveDrone('DroneTarget', [0,0,1.4], 0.5)
+# dc.moveDrone('DroneTarget', [0,0,1.4], 0.5)
 # d2camera_heading = (135 - math.pi) * 180 / math.pi
 # d3camera_heading = (225 - math.pi) * 180 / math.pi
 # print(f'D2 cam head: {d2camera_heading}')
@@ -41,6 +41,10 @@ dc.moveDrone('DroneTarget', [0,0,1.4], 0.5)
 # dc.client.moveByVelocityZAsync(d2pos.x_val, d2pos.y_val, d2pos.z_val, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, -120), vehicle_name='Drone2')
 # d3pos = dc.getMultirotorState('Drone3').kinematics_estimated.position
 # dc.client.moveByVelocityZAsync(d3pos.x_val, d3pos.y_val, d3pos.z_val, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 120), vehicle_name='Drone3')
+
+dc.setCameraAngle(-10, 'Drone1')
+dc.setCameraAngle(-10, 'Drone2')
+dc.setCameraAngle(-10, 'Drone3')
 
 dc.setCameraHeading(-100, 'Drone2')
 dc.setCameraHeading(100, 'Drone3')
