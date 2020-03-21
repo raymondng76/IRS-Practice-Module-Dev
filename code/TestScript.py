@@ -12,13 +12,13 @@ from yolov3_inference import *
 #yolo = YoloPredictor('..\weights\drone.h5')
 base_dir = Path('..')
 yolo = YoloPredictor(base_dir/'weights'/'drone.h5')
-
+timer =3
 droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
 dc = DroneControl(droneList)
-time.sleep(5)
+time.sleep(timer)
 # airsim.wait_key('Press any key to take off')
 dc.takeOff()
-time.sleep(5)
+time.sleep(timer)
 # airsim.wait_key('Press any key to read state')
 # state = pprint.pformat(dc.getMultirotorState('Drone1'))
 # print(f"State : {state}")
@@ -30,31 +30,36 @@ time.sleep(5)
 # airsim.wait_key('Press any key to get drone pos')
 # pos = dc.getDronePos('Drone1')
 # print(f'pos = {pos}')
-
+print('Pre move')
 # airsim.wait_key('Set cam orientation')
-# dc.moveDrone('DroneTarget', [0,0,1.4], 0.5)
+dc.moveDrone(droneList[-1], [0,0,1], 0.5)
 # d2camera_heading = (135 - math.pi) * 180 / math.pi
 # d3camera_heading = (225 - math.pi) * 180 / math.pi
 # print(f'D2 cam head: {d2camera_heading}')
 # print(f'D3 cam head: {d3camera_heading}')
-# d2pos = dc.getMultirotorState('Drone2').kinematics_estimated.position
+d1pos = dc.getMultirotorState(droneList[0]).kinematics_estimated.position
+dc.moveDrone(droneList[0], [d1pos.x_val, d1pos.y_val, -0.8], 0.5)
+d2pos = dc.getMultirotorState(droneList[1]).kinematics_estimated.position
+dc.moveDrone(droneList[1], [d2pos.x_val, d2pos.y_val, -0.8], 0.5)
+d3pos = dc.getMultirotorState(droneList[2]).kinematics_estimated.position
+dc.moveDrone(droneList[2], [d3pos.x_val, d3pos.y_val, -0.8], 0.5)
 # dc.client.moveByVelocityZAsync(d2pos.x_val, d2pos.y_val, d2pos.z_val, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, -120), vehicle_name='Drone2')
-# d3pos = dc.getMultirotorState('Drone3').kinematics_estimated.position
+print('Post move')
 # dc.client.moveByVelocityZAsync(d3pos.x_val, d3pos.y_val, d3pos.z_val, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, 120), vehicle_name='Drone3')
+time.sleep(timer)
+dc.setCameraAngle(-15, 'Drone1')
+dc.setCameraAngle(-15, 'Drone2')
+dc.setCameraAngle(-15, 'Drone3')
 
-dc.setCameraAngle(-10, 'Drone1')
-dc.setCameraAngle(-10, 'Drone2')
-dc.setCameraAngle(-10, 'Drone3')
-
-dc.setCameraHeading(-100, 'Drone2')
-dc.setCameraHeading(100, 'Drone3')
-time.sleep(5)
+dc.setCameraHeading(-125, 'Drone2')
+dc.setCameraHeading(125, 'Drone3')
+time.sleep(timer)
 
 # airsim.wait_key('Get images')
 img1 = dc.getImage(droneList[0])
 img2 = dc.getImage(droneList[1])
 img3 = dc.getImage(droneList[2])
-time.sleep(1)
+time.sleep(timer)
 bb1_out = yolo.get_yolo_boxes(img1[:,:,:3])
 bb2_out = yolo.get_yolo_boxes(img2[:,:,:3])
 bb3_out = yolo.get_yolo_boxes(img3[:,:,:3])
@@ -88,7 +93,7 @@ print(img1.shape)
 cv2.imwrite('img1.png', img1)
 cv2.imwrite('img2.png', img2)
 cv2.imwrite('img3.png', img3)
-time.sleep(5)
+time.sleep(timer)
 
 # airsim.wait_key('Press any key to read sensors')
 # baro = pprint.pformat(dc.GetBarometerData('Barometer1', 'Drone1'))
