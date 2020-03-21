@@ -61,11 +61,27 @@ class Env:
         self.dc.setCameraHeading(125, droneList[2])
 
         self.dc.simPause(True)
-        quad_vel = self.dc.getMultirotorState("Drone1").kinematics_estimated.linear_velocity
+        # quad_vel = self.dc.getMultirotorState("Drone1").kinematics_estimated.linear_velocity
         #responses = self.client.simGetImages([airsim.ImageRequest(1, airsim.ImageType.DepthVis, True)])
-        responses = []
-        quad_vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val])
-        observation = [responses, quad_vel]
+        drone1_img = self.dc.getImage(droneList[0])
+        drone2_img = self.dc.getImage(droneList[1])
+        drone3_img = self.dc.getImage(droneList[2])
+
+        responses = [drone1_img, drone2_img, drone3_img]
+
+        gps_drone1 = self.dc.getGpsData('Drone1')
+        gps_drone2 = self.dc.getGpsData('Drone2')
+        gps_drone3 = self.dc.getGpsData('Drone3')
+        gps_droneTarget = self.dc.getGpsData('DroneTarget')
+
+        gps_dist = []
+        target = (gps_droneTarget.latitude, gps_droneTarget.longitude)
+        for x in [gps_drone1, gps_drone2, gps_drone3]:
+            source = (x.latitude, x.longitude)
+            gps_dist.append(distance.distance(source, target).m)
+
+        # quad_vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val])
+        observation = [responses, gps_dist]
         return observation
 
     def step(self, quad_offset):
@@ -108,7 +124,7 @@ class Env:
         drone2_img = self.dc.getImage('Drone2')
         drone3_img = self.dc.getImage('Drone3')
 
-        # responses = []
+        responses = [drone1_img, drone2_img, drone3_img]
         # get distance between follower and target
         gps_drone1 = self.dc.getGpsData('Drone1')
         gps_drone2 = self.dc.getGpsData('Drone2')
