@@ -156,7 +156,7 @@ class Env:
             done[droneidx] = dead or quad_pos[droneidx].y_val >= goalY
 
         # compute reward
-        #reward = self.compute_reward(quad_pos, quad_vel, dead)
+        #reward = self.compute_reward(responses, quad_pos, quad_vel, dead)
         reward=-1
 
         # log info
@@ -176,34 +176,82 @@ class Env:
             else:
                 info['status'] = 'going'
             loginfo.append(loginfo)
-            quad_vel.append(np.array([quad_vel[droneidx].x_val, quad_vel[droneidx].y_val, quad_vel[droneidx].z_val]))
-            observation = [responses, gps_dist, quad_vel]
-        # observation = [responses[D1,D2,D3], gps_dist[D1,D2,D3], quad_vel[D1[X,Y,Z], D2[X,Y,Z], D3[X,Y,Z]]
+            # quad_vel.append(np.array([quad_vel[droneidx].x_val, quad_vel[droneidx].y_val, quad_vel[droneidx].z_val]))
+            # observation = [responses, gps_dist, quad_vel]
+            observation = [responses, gps_dist]
+        # observation = [responses[D1,D2,D3], gps_dist[D1,D2,D3]]
         # reward = [?]
         # done = [D1,D2,D3]
         # loginfo = [D1{'Y','level','status'},D2{'Y','level','status'},D3{'Y','level','status'}]
         return observation, reward, done, loginfo
 
-    def compute_reward(self, quad_pos, quad_vel, dead):
-        vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val], dtype=np.float)
-        speed = np.linalg.norm(vel)
-        if dead:
-            reward = config.reward['dead']
-        elif quad_pos.y_val >= goals[self.level]:
-            self.level += 1
-            # reward = config.reward['forward'] * (1 + self.level / len(goals))
-            reward = config.reward['goal'] * (1 + self.level / len(goals))
-        elif speed < speed_limit:
-            reward = config.reward['slow']
-        else:
-            reward = float(vel[1]) * 0.1
-        # elif vel[1] > 0:
-        #     reward = config.reward['forward'] * (1 + self.level / len(goals))
-        # else:
-        #     reward = config.reward['normal']
+    def compute_reward(self, responses, quad_pos, quad_vel, dead):
+        reward = []
+        for droneidx in range(len(droneList[:-1])):
+            # Calculate image rewards
+            # Image size : height=224, width=352, centerpoint=(112,176)
+            # Inner red zone (Dead) : 10% from center = YMin=(112-(112*0.1))=101, YMax(112+(112*0.1))=123, XMin=(176-(176*0.1))=159, XMax=(176+(176*0.1))=193
+            # Next Inner red zone (Normal) : 20% from center = YMin(112-(112*0.2))=90, YMax(112+(112*0.2))=134, XMin(176-(176*0.2))=141, XMax=(176+(176*0.2))=211
+            # Next Inner red zone (Slow) : 30% from center = YMin(112-(112*0.3))=79, YMax(112+(112*0.3))=145, XMin(176-(176*0.3))=123, XMax=(176+(176*0.3))=229
+            # Calculate outer, use center points as percentage reference to maintain same ratio
+            # Outer red zone (Dead) : 10% from image edge = YMin(0+(112*0.1))=11, YMax(224-(112*0.1))=213, XMin(0+(176*0.1))=18, XMax(352-(172*0.1))=334
+            # Next outer red zone (Normal) : 20% from image edge = YMin(0+(112*0.2))=22, YMax(224-(112*0.2))=202, XMin(0+(176*0.2))=36, XMax(352-(172*0.2))=316
+            # Next outer red zone (Slow) : 30% from image edge = YMin(0+(112*0.3))=33, YMax(224-(112*0.3))=191, XMin(0+(176*0.3))=54, XMax(352-(172*0.3))=298
+            # Else (forward)
+
+            img = responses[droneidx]
+            img_h, img_w = img.shape[0], img.shape[1]
+            bbox = self.infer_model.predict(img)
+
+            # vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val], dtype=np.float)
+            speed = np.linalg.norm(vel)
+            if dead:
+                reward = config.reward['dead']
+            elif quad_pos.y_val >= goals[self.level]:
+                self.level += 1
+                # reward = config.reward['forward'] * (1 + self.level / len(goals))
+                reward = config.reward['goal'] * (1 + self.level / len(goals))
+            elif speed < speed_limit:
+                reward = config.reward['slow']
+            else:
+                reward = float(vel[1]) * 0.1
+            # elif vel[1] > 0:
+            #     reward = config.reward['forward'] * (1 + self.level / len(goals))
+            # else:
+            #     reward = config.reward['normal']
         return reward
     
+    def _calculate_zone_param(self, param_type, percent, center_value, zone_type, edge_value=None):
+        if zone_type == 'inner':
+            edge_value = center_value
+        val = 0
+        if param_type == 'XMin' or param_type == 'YMin':
+            val = edge_value + (int(center_value[0] * percent))
+        elif param_type == 'XMax' or param_type == 'YMax':
+            val = edge_value - (int(center_value[1] * percent))
+        else:
+            raise ValueError('Unknown param_type')
+        return val
     
+    def calculate_bbox_zone(self, bbox, img):
+        img_h, img_w = img.shape[0], img.shape[1]
+        center_x = bbox.xmin + ((bbox.xmax - bbox.xmin)/2)
+        center_y = bbox.ymin + ((bbox.ymax - bbox.ymin)/2)
+        zone = ['inner', 'outer']
+        tol = [0.1, 0.2, 0.3]
+        reward_type = ['dead', 'normal', 'slow']
+        status = 'forward'
+        # Check inner
+        for z in zone:
+            for t in range(len(tol)):
+                if z == 'inner':
+                    xmin = self._calculate_zone_param('XMin', t, [center_x, center_y], z)
+                    xmax = self._calculate_zone_param('XMax', t, [center_x, center_y], z)
+                    ymin = self._calculate_zone_param('YMin', t, [center_x, center_y], z)
+                    ymax = self._calculate_zone_param('YMax', t, [center_x, center_y], z)
+
+
+        
     def lineseg_dists(self, p, a, b):
         # Ref: https://stackoverflow.com/questions/54442057/calculate-the-euclidian-distance-between-an-array-of-points-to-a-line-segment-in/54442561#54442561
         # Gets distance between point p and line ab
