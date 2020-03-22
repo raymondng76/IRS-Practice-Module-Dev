@@ -200,21 +200,24 @@ class Env:
             # Else (forward)
 
             img = responses[droneidx]
-            img_h, img_w = img.shape[0], img.shape[1]
             bbox = self.infer_model.predict(img)
-
+            img_status = self.calculate_bbox_zone(bbox, img)
             # vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val], dtype=np.float)
-            speed = np.linalg.norm(vel)
-            if dead:
+            # speed = np.linalg.norm(vel)
+            if dead or img_status == 'dead':
                 reward = config.reward['dead']
             elif quad_pos.y_val >= goals[self.level]:
                 self.level += 1
                 # reward = config.reward['forward'] * (1 + self.level / len(goals))
                 reward = config.reward['goal'] * (1 + self.level / len(goals))
-            elif speed < speed_limit:
+            # elif speed < speed_limit:
+            elif img_status == 'slow':
                 reward = config.reward['slow']
+            elif img_status == 'normal':
+                reward = config.reward['normal']
             else:
-                reward = float(vel[1]) * 0.1
+                # reward = float(vel[1]) * 0.1
+                reward = config.reward['forward']
             # elif vel[1] > 0:
             #     reward = config.reward['forward'] * (1 + self.level / len(goals))
             # else:
@@ -233,7 +236,7 @@ class Env:
             raise ValueError('Unknown param_type')
         return val
     
-    def calculate_bbox_zone(self, bbox, img):
+    def calculate_bbox_zone(self, bbox, img): # TODO: Find some way to pin point ROI
         img_h, img_w = img.shape[0], img.shape[1]
         center_x = bbox.xmin + ((bbox.xmax - bbox.xmin)/2)
         center_y = bbox.ymin + ((bbox.ymax - bbox.ymin)/2)
@@ -249,8 +252,26 @@ class Env:
                     xmax = self._calculate_zone_param('XMax', t, [center_x, center_y], z)
                     ymin = self._calculate_zone_param('YMin', t, [center_x, center_y], z)
                     ymax = self._calculate_zone_param('YMax', t, [center_x, center_y], z)
-
-
+                    if center_x > xmin and center_x < xmax and center_y > ymin and center_y < ymax:
+                        if t == 0.1:
+                            status = 'dead'
+                        elif t == 0.2:
+                            status = 'normal'
+                        elif t == 0.3:
+                            status = 'slow'
+                else:
+                    xmin = self._calculate_zone_param('XMin', t, [center_x, center_y], z, 0.0)
+                    xmax = self._calculate_zone_param('XMax', t, [center_x, center_y], z, img_w)
+                    ymin = self._calculate_zone_param('YMin', t, [center_x, center_y], z, 0.0)
+                    ymax = self._calculate_zone_param('YMax', t, [center_x, center_y], z, img_h)
+                    if center_x < xmin and center_x > xmax and center_y < ymin and center_y > ymax:
+                        if t == 0.1:
+                            status = 'dead'
+                        elif t == 0.2:
+                            status = 'normal'
+                        elif t == 0.3:
+                            status = 'slow'
+        return status
         
     def lineseg_dists(self, p, a, b):
         # Ref: https://stackoverflow.com/questions/54442057/calculate-the-euclidian-distance-between-an-array-of-points-to-a-line-segment-in/54442561#54442561
