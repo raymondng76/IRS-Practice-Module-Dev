@@ -150,30 +150,39 @@ class Env:
             quad_vel[droneidx] = self.dc.getMultirotorState(droneList[droneidx]).kinematics_estimated.linear_velocity
 
         # decide whether done
-        dead = has_collided or quad_pos.y_val <= outY
-        done = dead or quad_pos.y_val >= goalY
+        done = [False, False, False]
+        for droneidx in range(len(droneList[:-1])):
+            dead = has_collided[droneidx] or quad_pos[droneidx].y_val <= outY
+            done[droneidx] = dead or quad_pos[droneidx].y_val >= goalY
 
         # compute reward
         #reward = self.compute_reward(quad_pos, quad_vel, dead)
         reward=-1
 
         # log info
-        info = {}
-        info['Y'] = quad_pos.y_val
-        info['level'] = self.level
-        if landed:
-            info['status'] = 'landed'
-        elif has_collided:
-            info['status'] = 'collision'
-        elif quad_pos.y_val <= outY:
-            info['status'] = 'out'
-        elif quad_pos.y_val >= goalY:
-            info['status'] = 'goal'
-        else:
-            info['status'] = 'going'
-        quad_vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val])
-        observation = [responses, gps_dist, quad_vel]
-        return observation, reward, done, info
+        loginfo = []
+        for droneidx in range(len(droneList[:-1])):
+            info = {}
+            info['Y'] = quad_pos[droneidx].y_val
+            info['level'] = self.level
+            if landed[droneidx]:
+                info['status'] = 'landed'
+            elif has_collided[droneidx]:
+                info['status'] = 'collision'
+            elif quad_pos[droneidx].y_val <= outY:
+                info['status'] = 'out'
+            elif quad_pos[droneidx].y_val >= goalY:
+                info['status'] = 'goal'
+            else:
+                info['status'] = 'going'
+            loginfo.append(loginfo)
+            quad_vel.append(np.array([quad_vel[droneidx].x_val, quad_vel[droneidx].y_val, quad_vel[droneidx].z_val]))
+            observation = [responses, gps_dist, quad_vel]
+        # observation = [responses[D1,D2,D3], gps_dist[D1,D2,D3], quad_vel[D1[X,Y,Z], D2[X,Y,Z], D3[X,Y,Z]]
+        # reward = [?]
+        # done = [D1,D2,D3]
+        # loginfo = [D1{'Y','level','status'},D2{'Y','level','status'},D3{'Y','level','status'}]
+        return observation, reward, done, loginfo
 
     def compute_reward(self, quad_pos, quad_vel, dead):
         vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val], dtype=np.float)
