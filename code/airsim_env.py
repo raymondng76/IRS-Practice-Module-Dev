@@ -78,47 +78,60 @@ class Env:
         observation = [responses, gps_dist]
         return observation
 
-    def step(self, quad_offset):
+    def step(self, quad_offset_list):
         # move with given velocity
-        quad_offset = [float(i) for i in quad_offset]
-        quad_vel = self.dc.getMultirotorState("Drone1").kinematics_estimated.linear_velocity
+        for quad_offset in quad_offset_list:
+            quad_offset = [float(i) for i in quad_offset]
+
+        quad_vel = []
+        for drone in droneList[:-1]:
+            quad_vel.append(self.dc.getMultirotorState(drone).kinematics_estimated.linear_velocity)
         #print(f'quad_vel: {quad_vel} \n offset: {quad_offset}')
         self.dc.simPause(False)
         # Target follow fixed path now..
         self.dc.moveDrone("DroneTarget", [1,0,0], 2 * timeslice)
 
         # Calculations for Drone1
-        has_collided = False
-        landed = False
+        has_collided = [False, False, False]
+        landed = [False, False, False]
         #self.dc.moveDrone('Drone1', [quad_offset[0], quad_offset[1], quad_offset[2]], timeslice)
-        self.dc.moveDrone('Drone1', [quad_vel.x_val+quad_offset[0], quad_vel.y_val+quad_offset[1], quad_vel.z_val+quad_offset[2]], timeslice)
-        collision_count = 0
+        for droneidx in range(len(droneList[:-1])):
+            self.dc.moveDrone(drone, [quad_vel[droneidx].x_val+quad_offset[0], quad_vel[droneidx].y_val+quad_offset[1], quad_vel[droneidx].z_val+quad_offset[2]], timeslice)
+
+        collision_count = [0, 0, 0]
         start_time = time.time()
         while time.time() - start_time < timeslice:
             # get quadrotor states
-            quad_pos = self.dc.getMultirotorState("Drone1").kinematics_estimated.position
-            quad_vel = self.dc.getMultirotorState("Drone1").kinematics_estimated.linear_velocity
+            quad_pos = []
+            quad_vel = []
+            for drone in droneList[:-1]:
+                quad_pos.append(self.dc.getMultirotorState(drone).kinematics_estimated.position)
+                quad_vel.append(self.dc.getMultirotorState(drone).kinematics_estimated.linear_velocity)
 
             # decide whether collision occured
-            collided = self.dc.simGetCollisionInfo("Drone1").has_collided
-            landed = (quad_vel.x_val == 0 and quad_vel.y_val == 0 and quad_vel.z_val == 0)
-            landed = landed or quad_pos.z_val > floorZ
+            collided = [False, False, False]
+            landed = [False, False, False]
+            for droneidx in range(len(droneList[:-1])):
+                collided[droneidx] = self.dc.simGetCollisionInfo(drone).has_collided
+                land = (quad_vel[droneidx].x_val == 0 and quad_vel[droneidx].y_val == 0 and quad_vel[droneidx].z_val == 0)
+                landed[droneidx] = land or quad_pos[droneidx].z_val > floorZ
             #print(f'collided var: {collided}, landed var: {landed}')
-            collision = collided or landed
-            if collision:
-                collision_count += 1
-            if collision_count > 10:
-                has_collided = True
-                break
+            has_collided = [False, False, False]
+            for droneidx in range(len(droneList[:-1])):
+                collision = collided[droneidx] or landed[droneidx]
+                if collision:
+                    collision_count[droneidx] += 1
+                if collision_count > 10:
+                    has_collided[droneidx] = True
+                    break
         self.dc.simPause(True)
 
         # observe with depth camera
         #responses = self.client.simGetImages([airsim.ImageRequest(1, airsim.ImageType.DepthVis, True)])
-        drone1_img = self.dc.getImage('Drone1')
-        drone2_img = self.dc.getImage('Drone2')
-        drone3_img = self.dc.getImage('Drone3')
+        responses = []
+        for drone in droneList[:-1]:
+            responses.append(self.dc.getImage(drone))
 
-        responses = [drone1_img, drone2_img, drone3_img]
         # get distance between follower and target
         gps_drone1 = self.dc.getGpsData('Drone1')
         gps_drone2 = self.dc.getGpsData('Drone2')
@@ -132,8 +145,9 @@ class Env:
             gps_dist.append(distance.distance(source, target).m)
         
         # get quadrotor states
-        quad_pos = self.dc.getMultirotorState("Drone1").kinematics_estimated.position
-        quad_vel = self.dc.getMultirotorState("Drone1").kinematics_estimated.linear_velocity
+        for droneidx in range(len(droneList[:-1])):
+            quad_pos[droneidx] = self.dc.getMultirotorState(droneList[droneidx]).kinematics_estimated.position
+            quad_vel[droneidx] = self.dc.getMultirotorState(droneList[droneidx]).kinematics_estimated.linear_velocity
 
         # decide whether done
         dead = has_collided or quad_pos.y_val <= outY
