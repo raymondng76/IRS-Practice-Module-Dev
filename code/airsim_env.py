@@ -43,9 +43,22 @@ class Env:
             self.dc.moveDrone(drone, [0,0,0], 0.1 * timeslice)
             self.dc.hoverAsync(drone).join()
         
+        # move drone to initial position
+        d1pos = dc.getMultirotorState(droneList[0]).kinematics_estimated.position
+        dc.moveDrone(droneList[0], [d1pos.x_val, d1pos.y_val, -0.8], 0.5)
+        d2pos = dc.getMultirotorState(droneList[1]).kinematics_estimated.position
+        dc.moveDrone(droneList[1], [d2pos.x_val, d2pos.y_val, -0.8], 0.5)
+        d3pos = dc.getMultirotorState(droneList[2]).kinematics_estimated.position
+        dc.moveDrone(droneList[2], [d3pos.x_val, d3pos.y_val, -0.8], 0.5)
+
+        # adjust drone1, drone2 and drone3 camera angle
+        dc.setCameraAngle(-15, droneList[0])
+        dc.setCameraAngle(-15, droneList[1])
+        dc.setCameraAngle(-15, droneList[2])
+
         # calibrate drone2 and drone3 camera heading
-        self.dc.setCameraHeading(-120, droneList[1])
-        self.dc.setCameraHeading(120, droneList[2])
+        self.dc.setCameraHeading(-125, droneList[1])
+        self.dc.setCameraHeading(125, droneList[2])
 
         self.dc.simPause(True)
         quad_vel = self.dc.getMultirotorState("Drone1").kinematics_estimated.linear_velocity

@@ -180,12 +180,19 @@ class DroneControl:
         """
         return self.client.hoverAsync(drone)
 
-    def setCameraHeading(self, camera_angle, drone):
+    def setCameraHeading(self, camera_heading, drone):
         """
         Set camera orientation
         """
         pos = self.getMultirotorState(drone).kinematics_estimated.position
-        self.client.moveByVelocityZAsync(pos.x_val, pos.y_val, pos.z_val, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, camera_angle), vehicle_name=drone)
+        self.client.moveByVelocityZAsync(pos.x_val, pos.y_val, pos.z_val, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, camera_heading), vehicle_name=drone)
+    
+    def setCameraAngle(self, camera_angle, drone):
+        """
+        Set camera angle
+        """
+        pos = self.client.simSetCameraOrientation(0, airsim.to_quaternion(
+            camera_angle * math.pi / 180, 0, 0),vehicle_name=drone)  # radians
     
     def getImage(self, drone):
         """
