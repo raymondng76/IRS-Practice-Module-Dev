@@ -209,6 +209,7 @@ class Env:
             else:
                 # reward = float(vel[1]) * 0.1
                 reward[droneidx] = config.reward['forward']
+                
             gps = gps_dist[droneidx]
             if gps > 12 or gps < 4:
                 reward[droneidx] = reward[droneidx] + config.reward['dead']
@@ -258,19 +259,25 @@ class Env:
         return forward_bbox, slow_bbox, normal_bbox, dead_bbox
     
     def calculate_bbox_zone(self, bbox, img):
+        # Get all tier zone
         fbbox, sbbox, nbbox, dbbox = self._calculate_zone_param([img.shape[0], img.shape[1]])
+        # Get bbox dimension and find center point
         xmin, xmax, ymin, ymax = bbox.xmin, bbox.xmax, bbox.ymin, bbox.ymax
+        bcen_x = xmin + ((xmax - xmin) / 2)
+        bcen_y = ymin + ((ymax - xmin) / 2)
         
-        # Check dead zone
-        if (xmin < dbbox['xmin'] or xmax > dbbox['xmax']) and (ymin < dbbox['ymin'] or ymin > dbbox['ymax']):
+        # Check if bbox center point is in dead zone
+        if (bcen_x < dbbox['xmin'] or bcen_x > dbbox['xmax']) and (bcen_y < dbbox['ymin'] or bcen_y > dbbox['ymax']):
             status = 'dead'
-        # Check normal zone
-        elif ((xmin > dbbox['xmin'] and xmin < nbbox['xmin']) or (xmax < dbbox['xmax'] and xmax > nbbox['xmax'])) and \
-            ((ymin > dbbox['ymin'] and ymin < nbbox['ymin']) or (ymax < dbbox['ymax'] and ymax > nbbox['ymax'])):
+        # Check if bbox center point is in normal zone
+        elif ((bcen_x > dbbox['xmin'] and bcen_x < nbbox['xmin']) or (bcen_x < dbbox['xmax'] and bcen_x > nbbox['xmax'])) and \
+            ((bcen_y > dbbox['ymin'] and bcen_y < nbbox['ymin']) or (bcen_y < dbbox['ymax'] and bcen_y > nbbox['ymax'])):
             status = 'normal'
-        elif ((xmin > nbbox['xmin'] and xmin < sbbox['xmin']) or (xmax > nbbox['xmax'] and xmax > sbbox['xmax'])) and \
-            ((ymin > nbbox['ymin'] and xmin < sbbox['ymin']) or (ymax < nbbox['ymax'] and ymax > sbbox['ymax'])):
+        # Check if bbox center point is in slow zone
+        elif ((bcen_x > nbbox['xmin'] and bcen_x < sbbox['xmin']) or (bcen_x > nbbox['xmax'] and bcen_x > sbbox['xmax'])) and \
+            ((bcen_y > nbbox['ymin'] and bcen_y < sbbox['ymin']) or (bcen_y < nbbox['ymax'] and bcen_y > sbbox['ymax'])):
             status = 'slow'
+        # Bbox center point is in center forward zone
         else:
             status = 'forward'
         return status
