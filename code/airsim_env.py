@@ -153,11 +153,12 @@ class Env:
         done = [False, False, False]
         for droneidx in range(len(droneList[:-1])):
             dead = has_collided[droneidx] or quad_pos[droneidx].y_val <= outY
-            done[droneidx] = dead or quad_pos[droneidx].y_val >= goalY
+            done[droneidx] = dead
 
         # compute reward
-        #reward = self.compute_reward(responses, quad_pos, quad_vel, dead)
-        reward=-1
+        # reward = self.compute_reward(responses, quad_pos, quad_vel, dead)
+        reward = self.compute_reward(responses, gps_dist, done)
+        # reward=-1
 
         # log info
         loginfo = []
@@ -185,92 +186,93 @@ class Env:
         # loginfo = [D1{'Y','level','status'},D2{'Y','level','status'},D3{'Y','level','status'}]
         return observation, reward, done, loginfo
 
-    def compute_reward(self, responses, quad_pos, quad_vel, dead):
+    # def compute_reward(self, responses, quad_pos, quad_vel, dead):
+    def compute_reward(self, responses, gps_dist, dead):
         reward = []
         for droneidx in range(len(droneList[:-1])):
             # Calculate image rewards
-            # Image size : height=224, width=352, centerpoint=(112,176)
-            # Inner red zone (Dead) : 10% from center = YMin=(112-(112*0.1))=101, YMax(112+(112*0.1))=123, XMin=(176-(176*0.1))=159, XMax=(176+(176*0.1))=193
-            # Next Inner red zone (Normal) : 20% from center = YMin(112-(112*0.2))=90, YMax(112+(112*0.2))=134, XMin(176-(176*0.2))=141, XMax=(176+(176*0.2))=211
-            # Next Inner red zone (Slow) : 30% from center = YMin(112-(112*0.3))=79, YMax(112+(112*0.3))=145, XMin(176-(176*0.3))=123, XMax=(176+(176*0.3))=229
-            # Calculate outer, use center points as percentage reference to maintain same ratio
-            # Outer red zone (Dead) : 10% from image edge = YMin(0+(112*0.1))=11, YMax(224-(112*0.1))=213, XMin(0+(176*0.1))=18, XMax(352-(172*0.1))=334
-            # Next outer red zone (Normal) : 20% from image edge = YMin(0+(112*0.2))=22, YMax(224-(112*0.2))=202, XMin(0+(176*0.2))=36, XMax(352-(172*0.2))=316
-            # Next outer red zone (Slow) : 30% from image edge = YMin(0+(112*0.3))=33, YMax(224-(112*0.3))=191, XMin(0+(176*0.3))=54, XMax(352-(172*0.3))=298
-            # Else (forward)
-
             img = responses[droneidx]
             bbox = self.infer_model.predict(img)
             img_status = self.calculate_bbox_zone(bbox, img)
-            # vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val], dtype=np.float)
-            # speed = np.linalg.norm(vel)
-            if dead or img_status == 'dead':
-                reward = config.reward['dead']
-            elif quad_pos.y_val >= goals[self.level]:
-                self.level += 1
-                # reward = config.reward['forward'] * (1 + self.level / len(goals))
-                reward = config.reward['goal'] * (1 + self.level / len(goals))
+
+            if dead[droneidx] or img_status == 'dead':
+                reward[droneidx] = config.reward['dead']
+            # elif quad_pos.y_val >= goals[self.level]:
+            #     self.level += 1
+            #     # reward = config.reward['forward'] * (1 + self.level / len(goals))
+            #     reward = config.reward['goal'] * (1 + self.level / len(goals))
             # elif speed < speed_limit:
             elif img_status == 'slow':
-                reward = config.reward['slow']
+                reward[droneidx] = config.reward['slow']
             elif img_status == 'normal':
-                reward = config.reward['normal']
+                reward[droneidx] = config.reward['normal']
             else:
                 # reward = float(vel[1]) * 0.1
-                reward = config.reward['forward']
+                reward[droneidx] = config.reward['forward']
+            gps = gps_dist[droneidx]
+            if gps > 12 or gps < 4:
+                reward[droneidx] = reward[droneidx] + config.reward['dead']
+            else:
+                reward[droneidx] = reward[droneidx] + config.reward['forward']
             # elif vel[1] > 0:
             #     reward = config.reward['forward'] * (1 + self.level / len(goals))
             # else:
             #     reward = config.reward['normal']
         return reward
     
-    def _calculate_zone_param(self, param_type, percent, center_value, zone_type, edge_value=None):
-        if zone_type == 'inner':
-            edge_value = center_value
-        val = 0
-        if param_type == 'XMin' or param_type == 'YMin':
-            val = edge_value + (int(center_value[0] * percent))
-        elif param_type == 'XMax' or param_type == 'YMax':
-            val = edge_value - (int(center_value[1] * percent))
-        else:
-            raise ValueError('Unknown param_type')
-        return val
+    def _calculate_zone_param(self, img_size):
+        # All box in [Xmin, Xmax, Ymin, Ymax]
+        img_h, img_w = img_size[0], img_size[1]
+        img_cen_x = img_w / 2
+        img_cen_y = img_h / 2
+
+        # Inner (forward -> 20% of whole image fron the center)
+        forward_bbox = {
+            'xmin': img_cen_x - (img_w * 0.2 / 2), # Xmin
+            'xmax': img_cen_x + (img_w * 0.2 / 2), # Xmax
+            'ymin': img_cen_y - (img_h * 0.2 / 2), # Ymin
+            'ymax': img_cen_y + (img_h * 0.2 / 2)  # Ymax
+        }
+        # Inner (slow 40%)
+        slow_bbox = {
+            'xmin': img_cen_x - (img_w * 0.4 / 2), # Xmin
+            'xmax': img_cen_x + (img_w * 0.4 / 2), # Xmax
+            'ymin': img_cen_y - (img_h * 0.4 / 2), # Ymin
+            'ymax': img_cen_y + (img_h * 0.4 / 2)  # Ymax
+        }
+        # Inner (normal 60%)
+        normal_bbox = {
+            'xmin': img_cen_x - (img_w * 0.6 / 2), # Xmin
+            'xmax': img_cen_x + (img_w * 0.6 / 2), # Xmax
+            'ymin': img_cen_y - (img_h * 0.6 / 2), # Ymin
+            'ymax': img_cen_y + (img_h * 0.6 / 2)  # Ymax
+        }
+
+        # Outer (dead 80%)
+        dead_bbox = {
+            'xmin': img_cen_x - (img_w * 0.8 / 2), # Xmin
+            'xmax': img_cen_x + (img_w * 0.8 / 2), # Xmax
+            'ymin': img_cen_y - (img_h * 0.8 / 2), # Ymin
+            'ymax': img_cen_y + (img_h * 0.8 / 2)  # Ymax
+        }
+        return forward_bbox, slow_bbox, normal_bbox, dead_bbox
     
-    def calculate_bbox_zone(self, bbox, img): # TODO: Find some way to pin point ROI
-        img_h, img_w = img.shape[0], img.shape[1]
-        center_x = bbox.xmin + ((bbox.xmax - bbox.xmin)/2)
-        center_y = bbox.ymin + ((bbox.ymax - bbox.ymin)/2)
-        zone = ['inner', 'outer']
-        tol = [0.1, 0.2, 0.3]
-        reward_type = ['dead', 'normal', 'slow']
-        status = 'forward'
-        # Check inner
-        for z in zone:
-            for t in range(len(tol)):
-                if z == 'inner':
-                    xmin = self._calculate_zone_param('XMin', t, [center_x, center_y], z)
-                    xmax = self._calculate_zone_param('XMax', t, [center_x, center_y], z)
-                    ymin = self._calculate_zone_param('YMin', t, [center_x, center_y], z)
-                    ymax = self._calculate_zone_param('YMax', t, [center_x, center_y], z)
-                    if center_x > xmin and center_x < xmax and center_y > ymin and center_y < ymax:
-                        if t == 0.1:
-                            status = 'dead'
-                        elif t == 0.2:
-                            status = 'normal'
-                        elif t == 0.3:
-                            status = 'slow'
-                else:
-                    xmin = self._calculate_zone_param('XMin', t, [center_x, center_y], z, 0.0)
-                    xmax = self._calculate_zone_param('XMax', t, [center_x, center_y], z, img_w)
-                    ymin = self._calculate_zone_param('YMin', t, [center_x, center_y], z, 0.0)
-                    ymax = self._calculate_zone_param('YMax', t, [center_x, center_y], z, img_h)
-                    if center_x < xmin and center_x > xmax and center_y < ymin and center_y > ymax:
-                        if t == 0.1:
-                            status = 'dead'
-                        elif t == 0.2:
-                            status = 'normal'
-                        elif t == 0.3:
-                            status = 'slow'
+    def calculate_bbox_zone(self, bbox, img):
+        fbbox, sbbox, nbbox, dbbox = self._calculate_zone_param([img.shape[0], img.shape[1]])
+        xmin, xmax, ymin, ymax = bbox.xmin, bbox.xmax, bbox.ymin, bbox.ymax
+        
+        # Check dead zone
+        if (xmin < dbbox['xmin'] or xmax > dbbox['xmax']) and (ymin < dbbox['ymin'] or ymin > dbbox['ymax']):
+            status = 'dead'
+        # Check normal zone
+        elif ((xmin > dbbox['xmin'] and xmin < nbbox['xmin']) or (xmax < dbbox['xmax'] and xmax > nbbox['xmax'])) and \
+            ((ymin > dbbox['ymin'] and ymin < nbbox['ymin']) or (ymax < dbbox['ymax'] and ymax > nbbox['ymax'])):
+            status = 'normal'
+        elif ((xmin > nbbox['xmin'] and xmin < sbbox['xmin']) or (xmax > nbbox['xmax'] and xmax > sbbox['xmax'])) and \
+            ((ymin > nbbox['ymin'] and xmin < sbbox['ymin']) or (ymax < nbbox['ymax'] and ymax > sbbox['ymax'])):
+            status = 'slow'
+        else:
+            status = 'forward'
         return status
         
     def lineseg_dists(self, p, a, b):
