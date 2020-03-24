@@ -43,12 +43,15 @@ class Env:
             self.dc.moveDrone(drone, [0,0,0], 0.1 * timeslice)
             self.dc.hoverAsync(drone).join()
         
+        time.sleep(5)
+        print('took off')
         # move drone to initial position
         for drone in droneList[:-1]:
-            pos = dc.getMultirotorState(drone).kinematics_estimated.position
+            print('other loop')
+            pos = self.dc.getMultirotorState(drone).kinematics_estimated.position
             self.dc.moveDrone(drone, [pos.x_val, pos.y_val, -0.8], 0.5)
             # adjust drone1, drone2 and drone3 camera angle
-            self.setCameraAngle(-15, drone)
+            self.dc.setCameraAngle(-15, drone)
 
         
         # calibrate drone2 and drone3 camera heading
