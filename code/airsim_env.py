@@ -4,7 +4,7 @@ import time
 import numpy as np
 import airsim
 import config
-
+from pathlib import Path
 from DroneControlAPI import DroneControl
 from yolov3_inference import *
 from geopy import distance
@@ -20,7 +20,8 @@ speed_limit = 0.2
 ACTION = ['00', '+x', '+y', '+z', '-x', '-y', '-z']
 
 droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
-yolo_weights = 'weights\drone.h5'
+base_dir = Path('..')
+yolo_weights = base_dir/'weights'/'drone.h5'
 
 class Env:
     def __init__(self):
@@ -43,11 +44,11 @@ class Env:
             self.dc.moveDrone(drone, [0,0,0], 0.1 * timeslice)
             self.dc.hoverAsync(drone).join()
         
-        time.sleep(5)
+        
         print('took off')
         # move drone to initial position
         for drone in droneList[:-1]:
-            print('other loop')
+            # print('other loop')
             pos = self.dc.getMultirotorState(drone).kinematics_estimated.position
             self.dc.moveDrone(drone, [pos.x_val, pos.y_val, -0.8], 0.5)
             # adjust drone1, drone2 and drone3 camera angle
@@ -59,6 +60,8 @@ class Env:
         self.dc.setCameraHeading(125, droneList[2])
 
         self.dc.simPause(True)
+        print('post pause')
+        time.sleep(5)
         # quad_vel = self.dc.getMultirotorState("Drone1").kinematics_estimated.linear_velocity
         # responses = self.client.simGetImages([airsim.ImageRequest(1, airsim.ImageType.DepthVis, True)])
 
@@ -124,7 +127,7 @@ class Env:
                 collision = collided[droneidx] or landed[droneidx]
                 if collision:
                     collision_count[droneidx] += 1
-                if collision_count > 10:
+                if collision_count[droneidx] > 10:
                     has_collided[droneidx] = True
                     break
         self.dc.simPause(True)
@@ -191,11 +194,14 @@ class Env:
 
     # def compute_reward(self, responses, quad_pos, quad_vel, dead):
     def compute_reward(self, responses, gps_dist, dead):
-        reward = []
+        reward = [None] * len(droneList[:-1])
         for droneidx in range(len(droneList[:-1])):
             # Calculate image rewards
             img = responses[droneidx]
-            bbox = self.infer_model.predict(img)
+            try:
+                bbox = self.infer_model.get_yolo_boxes(img[:,:,:3])
+            except:
+                bbox = BoundBox(xmin=0, xmax=0, ymin=0, ymax=0)
             img_status = self.calculate_bbox_zone(bbox, img)
 
             if dead[droneidx] or img_status == 'dead':
