@@ -30,12 +30,15 @@ from PIL import Image
 
 from airsim_env import Env, ACTION
 
+droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
+
 agent_name = 'a2c'
 
 class A2CAgent(object):
     
     def __init__(self, state_size, action_size, actor_lr, critic_lr, tau,
                 gamma, lambd, entropy, horizon, load_model):
+                
         self.state_size = state_size
         self.action_size = action_size
         self.vel_size = 3
@@ -212,15 +215,18 @@ Environment interaction
 '''
 
 def transform_input(responses, img_height, img_width):
-    img1d = np.array(responses[0].image_data_float, dtype=np.float)
-    img1d = np.array(np.clip(255 * 3 * img1d, 0, 255), dtype=np.uint8)
-    img2d = np.reshape(img1d, (responses[0].height, responses[0].width))
-    image = Image.fromarray(img2d)
-    image = np.array(image.resize((img_width, img_height)).convert('L'))
-    cv2.imwrite('view.png', image)
-    image = np.float32(image.reshape(1, img_height, img_width, 1))
-    image /= 255.0
-    return image
+    imglist = []
+    for respond in responses:
+        img1d = np.array(respond.image_data_float, dtype=np.float)
+        img1d = np.array(np.clip(255 * 3 * img1d, 0, 255), dtype=np.uint8)
+        img2d = np.reshape(img1d, (respond.height, respond.width))
+        image = Image.fromarray(img2d)
+        image = np.array(image.resize((img_width, img_height)).convert('L'))
+        cv2.imwrite('view.png', image)
+        image = np.float32(image.reshape(1, img_height, img_width, 1))
+        image /= 255.0
+        imglist.append(image)
+    return imglist
 
 def interpret_action(action):
     scaling_factor = 1.
@@ -252,8 +258,8 @@ if __name__ == '__main__':
     parser.add_argument('--verbose',    action='store_true')
     parser.add_argument('--load_model', action='store_true')
     parser.add_argument('--play',       action='store_true')
-    parser.add_argument('--img_height', type=int,   default=72)
-    parser.add_argument('--img_width',  type=int,   default=128)
+    parser.add_argument('--img_height', type=int,   default=72) #72
+    parser.add_argument('--img_width',  type=int,   default=128) #128
     parser.add_argument('--actor_lr',   type=float, default=5e-5)
     parser.add_argument('--critic_lr',  type=float, default=1e-4)
     parser.add_argument('--tau',        type=float, default=0.1)
@@ -276,6 +282,7 @@ if __name__ == '__main__':
     # Make RL agent
     state_size = [args.seqsize, args.img_height, args.img_width, 1]
     action_size = 7
+    print("initializing agent")
     agent = A2CAgent(
         state_size=state_size,
         action_size=action_size,
@@ -306,7 +313,7 @@ if __name__ == '__main__':
     stats = []
 
     env = Env()
-
+    print("env loaded")
     if args.play:
         while True:
             try:
@@ -315,15 +322,17 @@ if __name__ == '__main__':
 
                 # stats
                 bestY, timestep, score, pmax = 0., 0, 0., 0.
-
-                observe = env.reset()
-                image, vel = observe
+                
+                env.reset()
+                observe = env.calibrate()
+                #observe = env.reset()
+                image, gps = observe
                 try:
                     image = transform_input(image, args.img_height, args.img_width)
                 except:
                     continue
                 history = np.stack([image] * args.seqsize, axis=1)
-                vel = vel.reshape(1, -1)
+                #vel = vel.reshape(1, -1)
                 state = [history, vel]
                 while not done:
                     timestep += 1
@@ -396,15 +405,23 @@ if __name__ == '__main__':
                 # stats
                 bestY, timestep, score, pmax = 0., 0, 0., 0.
                 t, actor_loss, critic_loss = 0, 0., 0.
-                observe = env.reset()
-                image, vel = observe
+                env.reset()
+                print("setup completed")
+                observe = env.calibrate()
+                print("calibrated")
+                image, gps = observe
+                print("transforming image")
                 try:
                     image = transform_input(image, args.img_height, args.img_width)
+                    print("image transformed")
                 except:
+                    print("Exception occured")
                     continue
+                print("collecting history")
                 history = np.stack([image] * args.seqsize, axis=1)
-                vel = vel.reshape(1, -1)
-                state = [history, vel]
+                #vel = vel.reshape(1, -1) using GPS
+                state = [history, gps]
+                print("stated acquired")
                 while not done and timestep < time_limit:
                     t += 1
                     timestep += 1

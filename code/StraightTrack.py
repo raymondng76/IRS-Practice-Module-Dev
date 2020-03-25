@@ -53,7 +53,7 @@ while True:
         action = interpret_action(action)
         observation, reward, done, info = env.step(action)
         
-        responses, gps_dist, quad_vel = observation
+        responses, gps_dist, = observation
         
         score += reward
 

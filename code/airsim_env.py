@@ -4,6 +4,7 @@ import time
 import numpy as np
 import airsim
 import config
+import os
 
 from DroneControlAPI import DroneControl
 from yolov3_inference import *
@@ -20,7 +21,9 @@ speed_limit = 0.2
 ACTION = ['00', '+x', '+y', '+z', '-x', '-y', '-z']
 
 droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
-yolo_weights = 'weights\drone.h5'
+dir = os.path.abspath(os.getcwd())
+yolo_weights = os.path.join(dir, 'weights\\drone.h5')
+#print(yolo_weights)
 
 class Env:
     def __init__(self):
@@ -46,14 +49,15 @@ class Env:
         time.sleep(5)
         print('took off')
         # move drone to initial position
-        for drone in droneList[:-1]:
+        for drone in droneList[:3]:
             print('other loop')
             pos = self.dc.getMultirotorState(drone).kinematics_estimated.position
             self.dc.moveDrone(drone, [pos.x_val, pos.y_val, -0.8], 0.5)
             # adjust drone1, drone2 and drone3 camera angle
             self.dc.setCameraAngle(-15, drone)
+        time.sleep(5)
 
-        
+    def calibrate(self):
         # calibrate drone2 and drone3 camera heading
         self.dc.setCameraHeading(-125, droneList[1])
         self.dc.setCameraHeading(125, droneList[2])
@@ -63,7 +67,7 @@ class Env:
         # responses = self.client.simGetImages([airsim.ImageRequest(1, airsim.ImageType.DepthVis, True)])
 
         responses = []
-        for drone in droneList[:-1]:
+        for drone in droneList[:3]:
             responses.append(self.dc.getImage(drone))
 
         gps_drone1 = self.dc.getGpsData('Drone1')
@@ -79,6 +83,10 @@ class Env:
 
         # quad_vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val])
         observation = [responses, gps_dist]
+        height = responses[0].shape[0]
+        width = responses[0].shape[1]
+        channels = responses[0].shape[2]
+        print(f"the height is {height}, the width is {width}, the no. of channels is {channels}")
         return observation
 
     def step(self, quad_offset_list):
@@ -124,7 +132,7 @@ class Env:
                 collision = collided[droneidx] or landed[droneidx]
                 if collision:
                     collision_count[droneidx] += 1
-                if collision_count > 10:
+                if collision_count[droneidx] > 10:
                     has_collided[droneidx] = True
                     break
         self.dc.simPause(True)
@@ -210,6 +218,7 @@ class Env:
             elif img_status == 'normal':
                 reward[droneidx] = config.reward['normal']
             else:
+                reward = [None] * len(droneList[:-1])
                 # reward = float(vel[1]) * 0.1
                 reward[droneidx] = config.reward['forward']
                 
