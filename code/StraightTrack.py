@@ -59,11 +59,11 @@ while True:
         
         responses, gps_dist = observation
         
-        score += reward
+        score += sum(reward)
 
         # stack history here
-        print('Step %d Action %s Reward %.2f Info %s:' % (timestep, action, reward, info))
-        print(f'gps dist from target for drones 1,2,3: {gps_dist}')
+        # print('Step %d Action %s Reward %.2f Info %s:' % (timestep, action, reward, info))
+        # print(f'gps dist from target for drones 1,2,3: {gps_dist}')
     # done
     print('Ep %d: Step %d Score %.3f' % (episode, timestep, score))
     episode += 1
