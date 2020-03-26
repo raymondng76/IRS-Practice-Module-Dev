@@ -1,7 +1,7 @@
 {
   "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
   "SettingsVersion": 1.2,
-  "ClockSpeed": 5,
+  "ClockSpeed": 10,
   "ViewMode": "FlyWithMe",
   "SimMode": "Multirotor",
   "CameraDefaults": {

@@ -22,11 +22,11 @@ speed_limit = 0.2
 ACTION = ['00', '+x', '+y', '+z', '-x', '-y', '-z']
 
 droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
-# dir = os.path.abspath(os.getcwd())
-# yolo_weights = os.path.join(dir, 'weights\\drone.h5')
+dir = os.path.abspath(os.getcwd())
+yolo_weights = os.path.join(dir, 'weights\\drone.h5')
 #print(yolo_weights)
-base_dir = Path('..')
-yolo_weights = base_dir/'weights'/'drone.h5'
+# base_dir = Path('..')
+# yolo_weights = base_dir/'weights'/'drone.h5'
 
 class Env:
     def __init__(self):

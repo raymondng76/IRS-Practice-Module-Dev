@@ -215,7 +215,8 @@ Environment interaction
 '''
 
 def transform_input(responses, img_height, img_width):
-    imglist = []
+    print("starting transformation")
+    arraylist = []
     for respond in responses:
         img1d = np.array(respond.image_data_float, dtype=np.float)
         img1d = np.array(np.clip(255 * 3 * img1d, 0, 255), dtype=np.uint8)
@@ -223,10 +224,13 @@ def transform_input(responses, img_height, img_width):
         image = Image.fromarray(img2d)
         image = np.array(image.resize((img_width, img_height)).convert('L'))
         cv2.imwrite('view.png', image)
+        print("image printed")
         image = np.float32(image.reshape(1, img_height, img_width, 1))
         image /= 255.0
-        imglist.append(image)
-    return imglist
+        print(image)
+    #for array in arraylist:
+
+    return arraylist
 
 def interpret_action(action):
     scaling_factor = 1.
@@ -410,7 +414,6 @@ if __name__ == '__main__':
                 observe = env.calibrate()
                 print("calibrated")
                 image, gps = observe
-                print("transforming image")
                 try:
                     image = transform_input(image, args.img_height, args.img_width)
                     print("image transformed")

@@ -58,7 +58,7 @@ while True:
         observation, reward, done, info = env.step(action)
         
         responses, gps_dist = observation
-        
+        print(reward)
         score += sum(reward)
 
         # stack history here
