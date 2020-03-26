@@ -4,6 +4,7 @@ import time
 import numpy as np
 import airsim
 import config
+import math
 from pathlib import Path
 from DroneControlAPI import DroneControl
 from yolov3_inference import *
@@ -44,29 +45,21 @@ class Env:
             self.dc.moveDrone(drone, [0,0,0], 0.1 * timeslice)
             self.dc.hoverAsync(drone).join()
         
-        
-        print('took off')
         # move drone to initial position
         for drone in droneList[:-1]:
             # print('other loop')
             pos = self.dc.getMultirotorState(drone).kinematics_estimated.position
-            self.dc.moveDrone(drone, [pos.x_val, pos.y_val, -0.8], 0.5)
+            self.dc.moveDrone(drone, [pos.x_val, pos.y_val, -2.5], 0.5)
             # adjust drone1, drone2 and drone3 camera angle
-            self.dc.setCameraAngle(-15, drone)
 
-        
-        # calibrate drone2 and drone3 camera heading
-        self.dc.setCameraHeading(-125, droneList[1])
-        self.dc.setCameraHeading(125, droneList[2])
-
-        self.dc.simPause(True)
-        print('post pause')
-        time.sleep(5)
-        # quad_vel = self.dc.getMultirotorState("Drone1").kinematics_estimated.linear_velocity
-        # responses = self.client.simGetImages([airsim.ImageRequest(1, airsim.ImageType.DepthVis, True)])
+        self.dc.setCameraAngle(-30, 'Drone1', 0)
+        self.dc.client.simSetCameraOrientation('4', airsim.to_quaternion(-30 * math.pi/180,0,62 * math.pi/180), vehicle_name='Drone2')
+        self.dc.client.simSetCameraOrientation('4', airsim.to_quaternion(-30 * math.pi/180,0,-62 * math.pi/180), vehicle_name='Drone3')
 
         responses = []
         for drone in droneList[:-1]:
+            img = self.dc.getImage(drone)
+            # cv2.imwrite(f'{drone}.png', img)
             responses.append(self.dc.getImage(drone))
 
         gps_drone1 = self.dc.getGpsData('Drone1')
@@ -81,6 +74,7 @@ class Env:
             gps_dist.append(distance.distance(source, target).m)
 
         # quad_vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val])
+        print(gps_dist)
         observation = [responses, gps_dist]
         return observation
 
@@ -228,7 +222,7 @@ class Env:
                 reward[droneidx] = config.reward['forward']
                 
             gps = gps_dist[droneidx]
-            if gps > 12 or gps < 4:
+            if gps > 9 or gps < 2.3:
                 reward[droneidx] = reward[droneidx] + config.reward['dead']
             else:
                 reward[droneidx] = reward[droneidx] + config.reward['forward']

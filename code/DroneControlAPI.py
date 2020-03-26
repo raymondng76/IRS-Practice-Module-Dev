@@ -186,16 +186,16 @@ class DroneControl:
         pos = self.getMultirotorState(drone).kinematics_estimated.position
         self.client.moveByVelocityZAsync(pos.x_val, pos.y_val, pos.z_val, 1, airsim.DrivetrainType.MaxDegreeOfFreedom, airsim.YawMode(False, camera_heading), vehicle_name=drone)
     
-    def setCameraAngle(self, camera_angle, drone):
+    def setCameraAngle(self, camera_angle, drone, cam=0):
         """
         Set camera angle
         """
-        pos = self.client.simSetCameraOrientation(0, airsim.to_quaternion(
+        pos = self.client.simSetCameraOrientation(cam, airsim.to_quaternion(
             camera_angle * math.pi / 180, 0, 0),vehicle_name=drone)  # radians
     
-    def getImage(self, drone):
+    def getImage(self, drone, cam=0):
         """
         Get image for single drone
         """
-        raw_img = self.client.simGetImage("0", airsim.ImageType.Scene, vehicle_name=drone)
+        raw_img = self.client.simGetImage(cam, airsim.ImageType.Scene, vehicle_name=drone)
         return cv2.imdecode(airsim.string_to_uint8_array(raw_img), cv2.IMREAD_UNCHANGED)

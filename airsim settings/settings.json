@@ -1,8 +1,8 @@
 {
   "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
   "SettingsVersion": 1.2,
-  "ClockSpeed": 5,
-  "ViewMode": "FlyWithMe",
+  "ClockSpeed": 3,
+  "ViewMode": "SpringArmChase",
   "SimMode": "Multirotor",
   "CameraDefaults": {
 	"CaptureSettings": [
@@ -21,7 +21,8 @@
   "Vehicles": {
 	"Drone1": {
 		"VehicleType": "SimpleFlight",
-		"X": -6, "Y": 0, "Z": -2,
+		"X": -4.6188, "Y": 0, "Z": -2,
+		
 		"Sensors": {
 			"Gps1": {
 				"SensorType": 3,
@@ -32,10 +33,11 @@
 				"Enabled": true
 			}
 		}
+
 	},
 	"Drone2": {
 		"VehicleType": "SimpleFlight",
-		"X": 4.243, "Y": 6, "Z": -2,
+		"X": 2.309, "Y": 4, "Z": -2,
 		"Sensors": {
 			"Gps1": {
 				"SensorType": 3,
@@ -49,7 +51,7 @@
 	},
 	"Drone3": {
 		"VehicleType": "SimpleFlight",
-		"X": 4.243, "Y": -6, "Z": -2,
+		"X": 2.309, "Y": -4, "Z": -2,
 		"Sensors": {
 			"Gps1": {
 				"SensorType": 3,
