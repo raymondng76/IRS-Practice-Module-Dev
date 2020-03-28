@@ -25,7 +25,9 @@ dir = os.path.abspath(os.getcwd())
 yolo_weights = os.path.join(dir, 'weights\\drone.h5')
 #print(yolo_weights)
 # base_dir = Path(__file__)
+# base_dir = Path('..')
 # yolo_weights = base_dir/'weights'/'drone.h5'
+# yolo_weights = '..\weights\drone.h5'
 
 class Env:
     def __init__(self):
@@ -97,7 +99,7 @@ class Env:
         #print(f'quad_vel: {quad_vel} \n offset: {quad_offset}')
         self.dc.simPause(False)
         # Target follow fixed path now..
-        self.dc.moveDrone("DroneTarget", [1,0,0], 2 * timeslice)
+        self.dc.moveDrone("DroneTarget", [0.25,0,0], 2 * timeslice)
 
         # Calculations for Drone1
         has_collided = [False, False, False]
@@ -163,7 +165,7 @@ class Env:
         done = False
         for droneidx in range(len(droneList[:-1])):
             print(f'Drone{droneidx}: collided? {has_collided[droneidx]}, outY? {quad_pos[droneidx].y_val <= outY}')
-            dead = has_collided[droneidx] or quad_pos[droneidx].y_val <= outY
+            dead = has_collided[droneidx] or quad_pos[droneidx].y_val <= outY or self.gps_out_bounds(gps_dist)
             # done[droneidx] = dead
             if dead:
                 done = True
@@ -190,7 +192,7 @@ class Env:
                 info['status'] = 'goal'
             else:
                 info['status'] = 'going'
-            loginfo.append(loginfo)
+            loginfo.append(info)
             # quad_vel.append(np.array([quad_vel[droneidx].x_val, quad_vel[droneidx].y_val, quad_vel[droneidx].z_val]))
             # observation = [responses, gps_dist, quad_vel]
             observation = [responses, gps_dist]
@@ -200,6 +202,14 @@ class Env:
         # loginfo = [D1{'Y','level','status'},D2{'Y','level','status'},D3{'Y','level','status'}]
         # print(f'done : {done} and all {all(done)}')
         return observation, reward, done, loginfo
+
+    def gps_out_bounds(self, gpslist):
+        stats = False
+        for gps in gpslist:
+            if gps > 9 or gps < 2.3:
+                stats = True
+                break
+        return stats
 
     # def compute_reward(self, responses, quad_pos, quad_vel, dead):
     def compute_reward(self, responses, gps_dist, dead):

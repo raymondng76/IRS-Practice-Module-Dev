@@ -124,23 +124,71 @@ class RDQNAgent(object):
         return critic
 
     def build_critic_optimizer(self):
-        action = K.placeholder(shape=(None, ), dtype='int32')
-        y = K.placeholder(shape=(None, ), dtype='float32')
-        pred = self.critic.output
+        action1 = K.placeholder(shape=(None, ), dtype='int32')
+        action2 = K.placeholder(shape=(None, ), dtype='int32')
+        action3 = K.placeholder(shape=(None, ), dtype='int32')
+        print(f'action1: {action1.shape}')
+        print(f'action2: {action2.shape}')
+        print(f'action3: {action3.shape}')
+        y1 = K.placeholder(shape=(None, ), dtype='float32')
+        y2 = K.placeholder(shape=(None, ), dtype='float32')
+        y3 = K.placeholder(shape=(None, ), dtype='float32')
+        print(f'y1: {y1.shape}')
+        print(f'y2: {y2.shape}')
+        print(f'y3: {y3.shape}')
+        pred1, pred2, pred3 = self.critic.output
+        print(f'pred1: {pred1.shape}')
+        print(f'pred2: {pred2.shape}')
+        print(f'pred3: {pred3.shape}')
         
         # loss = K.mean(K.square(pred - y))
         # Huber Loss
-        action_vec = K.one_hot(action, self.action_size)
-        Q = K.sum(pred * action_vec, axis=1)
-        error = K.abs(y - Q)
-        quadratic = K.clip(error, 0.0, 1.0)
-        linear = error - quadratic
-        loss = K.mean(0.5 * K.square(quadratic) + linear)
+        action_vec1 = K.one_hot(action1, self.action_size)
+        action_vec2 = K.one_hot(action2, self.action_size)
+        action_vec3 = K.one_hot(action3, self.action_size)
+        print(f'action_vec1: {action_vec1.shape}')
+        print(f'action_vec2: {action_vec2.shape}')
+        print(f'action_vec3: {action_vec3.shape}')
+        Q1 = K.sum(pred1 * action_vec1, axis=1)
+        Q2 = K.sum(pred2 * action_vec2, axis=1)
+        Q3 = K.sum(pred3 * action_vec3, axis=1)
+        print(f'Q1: {Q1}')
+        print(f'Q2: {Q2}')
+        print(f'Q3: {Q3}')
+        error1 = K.abs(y1 - Q1)
+        error2 = K.abs(y2 - Q2)
+        error3 = K.abs(y3 - Q3)
+        # error = K.mean(error1, error2, error3)
+        print(f'Error1: {error1}')
+        print(f'Error2: {error2}')
+        print(f'Error3: {error3}')
+
+        quadratic1 = K.clip(error1, 0.0, 1.0)
+        quadratic2 = K.clip(error2, 0.0, 1.0)
+        quadratic3 = K.clip(error3, 0.0, 1.0)
+        print(f'Quad1: {quadratic1}')
+        print(f'Quad2: {quadratic2}')
+        print(f'Quad3: {quadratic3}')
+
+        linear1 = error1 - quadratic1
+        linear2 = error2 - quadratic2
+        linear3 = error3 - quadratic3
+        print(f'Linear1: {linear1}')
+        print(f'Linear2: {linear2}')
+        print(f'Linear3: {linear3}')
+        preloss1 = K.mean(0.5 * K.square(quadratic1) + linear1)
+        preloss2 = K.mean(0.5 * K.square(quadratic2) + linear2)
+        preloss3 = K.mean(0.5 * K.square(quadratic3) + linear3)
+        print(f'preloss1: {preloss1}')
+        print(f'preloss2: {preloss2}')
+        print(f'preloss3: {preloss3}')
+        concatpreloss = tf.stack([preloss1, preloss2, preloss3], axis=0)
+        loss = K.mean(concatpreloss)
 
         optimizer = Adam(lr=self.lr)
         updates = optimizer.get_updates(self.critic.trainable_weights, [], loss)
         train = K.function(
-            [self.critic.input[0], self.critic.input[1], action, y],
+            [self.critic.input[0], self.critic.input[1], action1, action2, action3, y1, y2, y3],
             [loss],
             updates=updates
         )
@@ -157,34 +205,45 @@ class RDQNAgent(object):
         return [(np.argmax(Qs1), np.argmax(Qs1), Qmax1), (np.argmax(Qs2), np.argmax(Qs2), Qmax2), (np.argmax(Qs3), np.argmax(Qs3), Qmax3)]
 
     def train_model(self):
-        print(f'train model')
+        print(f'lem mem: {len(self.memory)}, batch: {self.batch_size}')
         batch = random.sample(self.memory, self.batch_size)
 
         images = np.zeros([self.batch_size] + self.state_size)
         vels = np.zeros([self.batch_size, self.vel_size])
-        actions = np.zeros((self.batch_size))
+
+        actions1 = np.zeros((self.batch_size))
+        actions2 = np.zeros((self.batch_size))
+        actions3 = np.zeros((self.batch_size))
+
         rewards = np.zeros((self.batch_size))
+
         next_images = np.zeros([self.batch_size] + self.state_size)
         next_vels = np.zeros([self.batch_size, self.vel_size])
+
         dones = np.zeros((self.batch_size))
 
         targets = np.zeros((self.batch_size, 1))
         print(f'batch_size: {self.batch_size}')
         for i, sample in enumerate(batch):
             images[i], vels[i] = sample[0]
-            actions[i] = sample[1]
-            rewards[i] = sample[2]
-            next_images[i], next_vels[i] = sample[3]
-            dones[i] = sample[4]
+            actions1[i] = sample[1]
+            actions2[i] = sample[2]
+            actions3[i] = sample[3]
+            rewards[i] = sample[4]
+            next_images[i], next_vels[i] = sample[5]
+            dones[i] = sample[6]
         states = [images, vels]
         next_states = [next_images, next_vels]
         target_next_Qs = self.target_critic.predict(next_states)
-        targets = rewards + self.gamma * (1 - dones) * np.amax(target_next_Qs, axis=1)
-        critic_loss = self.critic_update(states + [actions, targets])
+        targets1 = rewards + self.gamma * (1 - dones) * np.amax(target_next_Qs[0], axis=1)
+        targets2 = rewards + self.gamma * (1 - dones) * np.amax(target_next_Qs[1], axis=1)
+        targets3 = rewards + self.gamma * (1 - dones) * np.amax(target_next_Qs[2], axis=1)
+        # targets = [targets1, targets2, targets3]
+        critic_loss = self.critic_update(states + [actions1, actions2, actions3, targets1, targets2, targets3])
         return critic_loss[0]
 
-    def append_memory(self, state, action, reward, next_state, done):        
-        self.memory.append((state, action, reward, next_state, done))
+    def append_memory(self, state, action1, action2, action3, reward, next_state, done):        
+        self.memory.append((state, action1, action2, action3, reward, next_state, done))
         
     def load_model(self, name):
         if os.path.exists(name + '.h5'):
@@ -221,7 +280,7 @@ def transform_input(responses, img_height, img_width):
     return image
 
 def interpret_action(action):
-    scaling_factor = 1.0
+    scaling_factor = 0.25
     if action == 0:
         quad_offset = (0, 0, 0)
     elif action == 1:
@@ -254,11 +313,11 @@ if __name__ == '__main__':
     parser.add_argument('--lr',         type=float, default=1e-4)
     parser.add_argument('--gamma',      type=float, default=0.99)
     parser.add_argument('--seqsize',    type=int,   default=5)
-    parser.add_argument('--epoch',      type=int,   default=1)
-    parser.add_argument('--batch_size', type=int,   default=32)
+    parser.add_argument('--epoch',      type=int,   default=5)
+    parser.add_argument('--batch_size', type=int,   default=5)
     parser.add_argument('--memory_size',type=int,   default=50000)
-    # parser.add_argument('--train_start',type=int,   default=3000)
-    parser.add_argument('--train_start',type=int,   default=10)
+    parser.add_argument('--train_start',type=int,   default=3000)
+    # parser.add_argument('--train_start',type=int,   default=10)
     parser.add_argument('--train_rate', type=int,   default=5)
     parser.add_argument('--target_rate',type=int,   default=1000)
     parser.add_argument('--epsilon',    type=float, default=1)
@@ -359,7 +418,7 @@ if __name__ == '__main__':
                 break
     else:
         # Train
-        time_limit = 600
+        time_limit = 10
         highscoreY = 0.
         if os.path.exists('save_stat/'+ agent_name + '_stat.csv'):
             with open('save_stat/'+ agent_name + '_stat.csv', 'r') as f:
@@ -418,23 +477,33 @@ if __name__ == '__main__':
                     observe, reward, done, info = env.step([real_action1,real_action2,real_action3])
                     image, vel = observe
                     vel = np.array(vel)
+                    info1 = info[0]['status']
+                    info2 = info[1]['status']
+                    info3 = info[2]['status']
+                    print(f'info1: {info1}')
+                    print(f'info2: {info2}')
+                    print(f'info3: {info3}')
+
                     try:
-                        if timestep < 3 and info['status'] == 'landed':
+                        if timestep < 3 and info[0]['status'] == 'landed' and info[1]['status'] == 'landed' and info[2]['status'] == 'landed':
                             raise Exception
                         image = transform_input(image, args.img_height, args.img_width)
+                        print(f'image.shape: {image.shape}')
                     except:
+                        print('BUG')
                         bug = True
                         break
                     history = np.append(history[:, 1:], [image], axis=1)
                     vel = vel.reshape(1, -1)
                     next_state = [history, vel]
-                    agent.append_memory(state, action, reward, next_state, done)
-
+                    reward = np.sum(np.array(reward))
+                    agent.append_memory(state, action1, action2, action3, reward, next_state, done)
+                    print(f'reward: {reward}')
                     # stats
                     avgQ += float(Qmax1 + Qmax2 + Qmax3)
-                    score += reward
-                    if info['Y'] > bestY:
-                        bestY = info['Y']
+                    score += float(reward)
+                    # if info['Y'] > bestY:
+                    #     bestY = info['Y']
 
                     print('%s | %s' % (ACTION[action1], ACTION[policy1]), end='\r', flush=True)
 
@@ -457,20 +526,20 @@ if __name__ == '__main__':
                 if args.verbose or episode % 10 == 0:
                     print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f'
                             % (episode, bestY, timestep, score, avgQ))
-                stats = [
-                    episode, timestep, score, bestY, \
-                    loss, info['level'], avgQ, info['status']
-                ]
+                # stats = [
+                #     episode, timestep, score, bestY, \
+                #     loss, info['level'], avgQ, info['status']
+                # ]
                 # log stats
-                with open('save_stat/'+ agent_name + '_stat.csv', 'a', encoding='utf-8', newline='') as f:
-                    wr = csv.writer(f)
-                    wr.writerow(['%.4f' % s if type(s) is float else s for s in stats])
-                if highscoreY < bestY:
-                    highscoreY = bestY
-                    with open('save_stat/'+ agent_name + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
-                        wr = csv.writer(f)
-                        wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
-                    agent.save_model('./save_model/'+ agent_name + '_best')
+                # with open('save_stat/'+ agent_name + '_stat.csv', 'a', encoding='utf-8', newline='') as f:
+                #     wr = csv.writer(f)
+                #     wr.writerow(['%.4f' % s if type(s) is float else s for s in stats])
+                # if highscoreY < bestY:
+                #     highscoreY = bestY
+                #     with open('save_stat/'+ agent_name + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
+                #         wr = csv.writer(f)
+                #         wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
+                #     agent.save_model('./save_model/'+ agent_name + '_best')
                 agent.save_model('./save_model/'+ agent_name)
                 episode += 1
             except KeyboardInterrupt:
