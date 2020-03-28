@@ -280,7 +280,7 @@ def transform_input(responses, img_height, img_width):
     return image
 
 def interpret_action(action):
-    scaling_factor = 1.0
+    scaling_factor = 0.25
     if action == 0:
         quad_offset = (0, 0, 0)
     elif action == 1:
@@ -313,11 +313,11 @@ if __name__ == '__main__':
     parser.add_argument('--lr',         type=float, default=1e-4)
     parser.add_argument('--gamma',      type=float, default=0.99)
     parser.add_argument('--seqsize',    type=int,   default=5)
-    parser.add_argument('--epoch',      type=int,   default=1)
+    parser.add_argument('--epoch',      type=int,   default=5)
     parser.add_argument('--batch_size', type=int,   default=5)
     parser.add_argument('--memory_size',type=int,   default=50000)
-    # parser.add_argument('--train_start',type=int,   default=3000)
-    parser.add_argument('--train_start',type=int,   default=10)
+    parser.add_argument('--train_start',type=int,   default=3000)
+    # parser.add_argument('--train_start',type=int,   default=10)
     parser.add_argument('--train_rate', type=int,   default=5)
     parser.add_argument('--target_rate',type=int,   default=1000)
     parser.add_argument('--epsilon',    type=float, default=1)
