@@ -124,23 +124,43 @@ class RDQNAgent(object):
         return critic
 
     def build_critic_optimizer(self):
-        action = K.placeholder(shape=(None, ), dtype='int32')
-        y = K.placeholder(shape=(None, ), dtype='float32')
-        pred = self.critic.output
+        action1 = K.placeholder(shape=(None, ), dtype='int32')
+        action2 = K.placeholder(shape=(None, ), dtype='int32')
+        action3 = K.placeholder(shape=(None, ), dtype='int32')
+        y1 = K.placeholder(shape=(None, ), dtype='float32')
+        y2 = K.placeholder(shape=(None, ), dtype='float32')
+        y3 = K.placeholder(shape=(None, ), dtype='float32')
+        pred1, pred2, pred3 = self.critic.output
         
         # loss = K.mean(K.square(pred - y))
         # Huber Loss
-        action_vec = K.one_hot(action, self.action_size)
-        Q = K.sum(pred * action_vec, axis=1)
-        error = K.abs(y - Q)
-        quadratic = K.clip(error, 0.0, 1.0)
-        linear = error - quadratic
-        loss = K.mean(0.5 * K.square(quadratic) + linear)
+        action_vec1 = K.one_hot(action1, self.action_size)
+        action_vec2 = K.one_hot(action2, self.action_size)
+        action_vec3 = K.one_hot(action3, self.action_size)
+        Q1 = K.sum(pred1 * action_vec1, axis=1)
+        Q2 = K.sum(pred2 * action_vec2, axis=1)
+        Q3 = K.sum(pred3 * action_vec3, axis=1)
+
+        error1 = K.abs(y1 - Q1)
+        error2 = K.abs(y2 - Q2)
+        error3 = K.abs(y3 - Q3)
+        # error = K.mean(error1, error2, error3)
+
+        quadratic1 = K.clip(error1, 0.0, 1.0)
+        quadratic2 = K.clip(error2, 0.0, 1.0)
+        quadratic3 = K.clip(error3, 0.0, 1.0)
+        linear1 = error1 - quadratic1
+        linear2 = error2 - quadratic2
+        linear3 = error3 - quadratic3
+        preloss1 = K.mean(0.5 * K.square(quadratic1) + linear1)
+        preloss2 = K.mean(0.5 * K.square(quadratic2) + linear2)
+        preloss3 = K.mean(0.5 * K.square(quadratic3) + linear3)
+        loss = K.mean(preloss1, preloss2, preloss3)
 
         optimizer = Adam(lr=self.lr)
         updates = optimizer.get_updates(self.critic.trainable_weights, [], loss)
         train = K.function(
-            [self.critic.input[0], self.critic.input[1], action, y],
+            [self.critic.input[0], self.critic.input[1], action1, action2, action3, y1, y2, y3],
             [loss],
             updates=updates
         )
@@ -162,29 +182,40 @@ class RDQNAgent(object):
 
         images = np.zeros([self.batch_size] + self.state_size)
         vels = np.zeros([self.batch_size, self.vel_size])
-        actions = np.zeros((self.batch_size))
+
+        actions1 = np.zeros((self.batch_size))
+        actions2 = np.zeros((self.batch_size))
+        actions3 = np.zeros((self.batch_size))
+
         rewards = np.zeros((self.batch_size))
+
         next_images = np.zeros([self.batch_size] + self.state_size)
         next_vels = np.zeros([self.batch_size, self.vel_size])
+
         dones = np.zeros((self.batch_size))
 
         targets = np.zeros((self.batch_size, 1))
         print(f'batch_size: {self.batch_size}')
         for i, sample in enumerate(batch):
             images[i], vels[i] = sample[0]
-            actions[i] = sample[1]
-            rewards[i] = sample[2]
-            next_images[i], next_vels[i] = sample[3]
-            dones[i] = sample[4]
+            actions1[i] = sample[1]
+            actions2[i] = sample[2]
+            actions3[i] = sample[3]
+            rewards[i] = sample[4]
+            next_images[i], next_vels[i] = sample[5]
+            dones[i] = sample[6]
         states = [images, vels]
         next_states = [next_images, next_vels]
         target_next_Qs = self.target_critic.predict(next_states)
-        targets = rewards + self.gamma * (1 - dones) * np.amax(target_next_Qs, axis=1)
-        critic_loss = self.critic_update(states + [actions, targets])
+        targets1 = rewards + self.gamma * (1 - dones) * np.amax(target_next_Qs[0], axis=1)
+        targets2 = rewards + self.gamma * (1 - dones) * np.amax(target_next_Qs[1], axis=1)
+        targets3 = rewards + self.gamma * (1 - dones) * np.amax(target_next_Qs[2], axis=1)
+        # targets = [targets1, targets2, targets3]
+        critic_loss = self.critic_update(states + [actions1, actions2, actions3, targets1, targets2, targets3])
         return critic_loss[0]
 
-    def append_memory(self, state, action, reward, next_state, done):        
-        self.memory.append((state, action, reward, next_state, done))
+    def append_memory(self, state, action1, action2, action3, reward, next_state, done):        
+        self.memory.append((state, action1, action2, action3, reward, next_state, done))
         
     def load_model(self, name):
         if os.path.exists(name + '.h5'):
@@ -359,7 +390,7 @@ if __name__ == '__main__':
                 break
     else:
         # Train
-        time_limit = 600
+        time_limit = 10
         highscoreY = 0.
         if os.path.exists('save_stat/'+ agent_name + '_stat.csv'):
             with open('save_stat/'+ agent_name + '_stat.csv', 'r') as f:
@@ -418,17 +449,27 @@ if __name__ == '__main__':
                     observe, reward, done, info = env.step([real_action1,real_action2,real_action3])
                     image, vel = observe
                     vel = np.array(vel)
+                    info1 = info[0]['status']
+                    info2 = info[1]['status']
+                    info3 = info[2]['status']
+                    print(f'info1: {info1}')
+                    print(f'info2: {info2}')
+                    print(f'info3: {info3}')
+
                     try:
-                        if timestep < 3 and info['status'] == 'landed':
+                        if timestep < 3 and info[0]['status'] == 'landed' and info[1]['status'] == 'landed' and info[2]['status'] == 'landed':
                             raise Exception
                         image = transform_input(image, args.img_height, args.img_width)
+                        print(f'image.shape: {image.shape}')
                     except:
+                        print('BUG')
                         bug = True
                         break
                     history = np.append(history[:, 1:], [image], axis=1)
                     vel = vel.reshape(1, -1)
                     next_state = [history, vel]
-                    agent.append_memory(state, action, reward, next_state, done)
+                    
+                    agent.append_memory(state, actions1, actions2, actions3, reward, next_state, done)
 
                     # stats
                     avgQ += float(Qmax1 + Qmax2 + Qmax3)
