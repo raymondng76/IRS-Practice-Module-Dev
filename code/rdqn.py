@@ -137,6 +137,7 @@ class RDQNAgent(object):
         return np.argmax(Qs), np.argmax(Qs), Qmax
 
     def train_model(self):
+        print(f'train model')
         batch = random.sample(self.memory, self.batch_size)
 
         images = np.zeros([self.batch_size] + self.state_size)
@@ -148,7 +149,7 @@ class RDQNAgent(object):
         dones = np.zeros((self.batch_size))
 
         targets = np.zeros((self.batch_size, 1))
-        
+        print(f'batch_size: {self.batch_size}')
         for i, sample in enumerate(batch):
             images[i], vels[i] = sample[0]
             actions[i] = sample[1]
@@ -182,14 +183,21 @@ Environment interaction
 '''
 
 def transform_input(responses, img_height, img_width):
-    img1d = np.array(responses[0].image_data_float, dtype=np.float)
-    img1d = np.array(np.clip(255 * 3 * img1d, 0, 255), dtype=np.uint8)
-    img2d = np.reshape(img1d, (responses[0].height, responses[0].width))
-    image = Image.fromarray(img2d)
-    image = np.array(image.resize((img_width, img_height)).convert('L'))
-    cv2.imwrite('view.png', image)
-    image = np.float32(image.reshape(1, img_height, img_width, 1))
-    image /= 255.0
+    # img1d = np.array(responses[0].image_data_float, dtype=np.float)
+    # img1d = np.array(np.clip(255 * 3 * img1d, 0, 255), dtype=np.uint8)
+    # img2d = np.reshape(img1d, (responses[0].height, responses[0].width))
+    # image = Image.fromarray(img2d)
+    # image = np.array(image.resize((img_width, img_height)).convert('L'))
+    # cv2.imwrite('view.png', image)
+    # image = np.float32(image.reshape(1, img_height, img_width, 1))
+    # image /= 255.0
+    # return image
+    d1img = np.array(cv2.cvtColor(responses[0][:,:,:3], cv2.COLOR_BGR2GRAY))
+    d2img = np.array(cv2.cvtColor(responses[1][:,:,:3], cv2.COLOR_BGR2GRAY))
+    d3img = np.array(cv2.cvtColor(responses[2][:,:,:3], cv2.COLOR_BGR2GRAY))
+    dimg = np.array([d1img, d2img, d3img])
+    image = dimg.reshape(1, img_height, img_width, 3)
+    print(f'Drone image shape: {image.shape}')
     return image
 
 def interpret_action(action):
@@ -221,8 +229,8 @@ if __name__ == '__main__':
     parser.add_argument('--verbose',    action='store_true')
     parser.add_argument('--load_model', action='store_true')
     parser.add_argument('--play',       action='store_true')
-    parser.add_argument('--img_height', type=int,   default=72)
-    parser.add_argument('--img_width',  type=int,   default=128)
+    parser.add_argument('--img_height', type=int,   default=224)
+    parser.add_argument('--img_width',  type=int,   default=352)
     parser.add_argument('--lr',         type=float, default=1e-4)
     parser.add_argument('--gamma',      type=float, default=0.99)
     parser.add_argument('--seqsize',    type=int,   default=5)
@@ -246,7 +254,7 @@ if __name__ == '__main__':
         os.makedirs('save_model')
 
     # Make RL agent
-    state_size = [args.seqsize, args.img_height, args.img_width, 1]
+    state_size = [args.seqsize, args.img_height, args.img_width, 3]
     action_size = 7
     agent = RDQNAgent(
         state_size=state_size,
@@ -278,8 +286,9 @@ if __name__ == '__main__':
                 image, vel = observe
                 try:
                     print('pre image transform')
-                    image = transform_input(image, args.img_height, args.img_width)
+                    image = transform_input(image, args.img_height, args.img_width) #TODO
                 except:
+                    print('except')
                     continue
                 history = np.stack([image] * args.seqsize, axis=1)
                 vel = vel.reshape(1, -1)
@@ -357,20 +366,26 @@ if __name__ == '__main__':
                 # stats
                 bestY, timestep, score, avgQ = 0., 0, 0., 0.
                 train_num, loss = 0, 0.
-
+                
                 observe = env.reset()
                 image, vel = observe
+                vel = np.array(vel)
+                print(f'vel: {vel.shape}')
                 try:
                     image = transform_input(image, args.img_height, args.img_width)
                 except:
                     continue
                 history = np.stack([image] * args.seqsize, axis=1)
+                print(f'history: {history.shape}')
                 vel = vel.reshape(1, -1)
+                print(f'vel: {vel.shape}')
                 state = [history, vel]
+                print(state)
                 while not done and timestep < time_limit:
                     timestep += 1
                     global_step += 1
                     if len(agent.memory) >= args.train_start and global_step >= args.train_rate:
+                        print(f'train start loop')
                         for _ in range(args.epoch):
                             c_loss = agent.train_model()
                             loss += float(c_loss)
@@ -393,7 +408,9 @@ if __name__ == '__main__':
                         bug = True
                         break
                     history = np.append(history[:, 1:], [image], axis=1)
+                    print(f'post history: {history.shape}')
                     vel = vel.reshape(1, -1)
+                    print(f'post vel: {vel.shape}')
                     next_state = [history, vel]
                     agent.append_memory(state, action, reward, next_state, done)
 
@@ -442,4 +459,7 @@ if __name__ == '__main__':
                 episode += 1
             except KeyboardInterrupt:
                 env.disconnect()
+                break
+            except Exception as e:
+                print(f'{e}')
                 break
