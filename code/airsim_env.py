@@ -9,7 +9,7 @@ from pathlib import Path
 from DroneControlAPI import DroneControl
 from yolov3_inference import *
 from geopy import distance
-
+import os
 
 clockspeed = 1
 timeslice = 0.5 / clockspeed
@@ -24,7 +24,7 @@ droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
 dir = os.path.abspath(os.getcwd())
 yolo_weights = os.path.join(dir, 'weights\\drone.h5')
 #print(yolo_weights)
-# base_dir = Path('..')
+# base_dir = Path(__file__)
 # yolo_weights = base_dir/'weights'/'drone.h5'
 
 class Env:
