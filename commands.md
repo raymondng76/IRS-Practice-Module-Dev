@@ -35,6 +35,7 @@ python build_airsim_image.py \
 - Go to directory `cd AirSim/docker` if you have not
 - Replace the `settings.json` file with your desired configuration
 - Execute `./download_blocks_env_binary.sh` to get default Blocks environment
-- Execute `./run_airsim_image_binary.sh airsim_binary:10.1-devel-ubuntu18.04 Blocks/Blocks.sh -windowed -resX=1280 -resY=720` to run environment
+- Execute `./run_airsim_image_binary.sh airsim_binary:10.1-devel-ubuntu18.04 Blocks/Blocks.sh -windowed -resX=1280 -resY=720` to run default Blocks environment
 - Look for more environment in the [releases](https://github.com/microsoft/AirSim/releases) page
+- For headless mode append ` -- headless` option. An example would be `./run_airsim_image_binary.sh airsim_binary:10.1-devel-ubuntu18.04 Blocks/Blocks.sh -windowed -resX=1280 -resY=720 -- headless`
 
