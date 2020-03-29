@@ -214,7 +214,6 @@ class Env:
             img = responses[droneidx]
             try:
                 bbox = self.infer_model.get_yolo_boxes(img[:,:,:3])
-                print(f'{droneList[droneidx]}: Xmin {bbox.xmin}, Xmax {bbox.xmax}, Ymin {bbox.ymin}, Ymax {bbox.ymax}')
                 img_status = self.calculate_bbox_zone(bbox, img)
             except:
                 bbox = BoundBox(xmin=0, xmax=0, ymin=0, ymax=0)
