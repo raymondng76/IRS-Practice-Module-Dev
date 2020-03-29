@@ -107,8 +107,12 @@ class Env:
         #self.dc.moveDrone('Drone1', [quad_offset[0], quad_offset[1], quad_offset[2]], timeslice)
         for droneidx in range(len(droneList[:-1])):
             print(f'Drone{droneidx}: X:{quad_vel[droneidx].x_val+quad_offset[droneidx][0]}, Y:{quad_vel[droneidx].y_val+quad_offset[droneidx][1]}, Z:{quad_vel[droneidx].z_val+quad_offset[droneidx][2]}')
-            self.dc.moveDrone(droneList[droneidx], [quad_offset[droneidx][0], quad_offset[droneidx][1], quad_offset[droneidx][2]], timeslice)
-            # self.dc.moveDrone(droneList[droneidx], [quad_vel[droneidx].x_val+quad_offset[droneidx][0], quad_vel[droneidx].y_val+quad_offset[droneidx][1], quad_vel[droneidx].z_val+quad_offset[droneidx][2]], timeslice)
+            #self.dc.moveDrone(droneList[droneidx], [quad_offset[droneidx][0], quad_offset[droneidx][1], quad_offset[droneidx][2]], timeslice)
+            self.dc.moveDrone(droneList[droneidx], 
+                            [quad_vel[droneidx].x_val+quad_offset[droneidx][0], 
+                            quad_vel[droneidx].y_val+quad_offset[droneidx][1], 
+                            quad_vel[droneidx].z_val+quad_offset[droneidx][2]], 
+                            timeslice)
 
         collision_count = [0, 0, 0]
         start_time = time.time()
