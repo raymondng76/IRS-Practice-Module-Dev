@@ -178,7 +178,9 @@ Environment interaction
 
 def transform_input(responses, img_height, img_width):
     img = np.array(cv2.cvtColor(responses[:,:,:3], cv2.COLOR_BGR2GRAY))
-    image = img.reshape(1, img_height, img_width, 1)
+    img_norm = np.zeros((img_height, img_width))
+    img_norm = cv2.normalize(img, img_norm, 0, 255, cv2.NORM_MINMAX)
+    image = img_norm.reshape(1, img_height, img_width, 1)
     return image
 
 def interpret_action(action):

@@ -231,7 +231,13 @@ def transform_input(responses, img_height, img_width):
     d1img = np.array(cv2.cvtColor(responses[0][:,:,:3], cv2.COLOR_BGR2GRAY))
     d2img = np.array(cv2.cvtColor(responses[1][:,:,:3], cv2.COLOR_BGR2GRAY))
     d3img = np.array(cv2.cvtColor(responses[2][:,:,:3], cv2.COLOR_BGR2GRAY))
-    dimg = np.array([d1img, d2img, d3img])
+    d1norm = np.zeros((img_height, img_width))
+    d2norm = np.zeros((img_height, img_width))
+    d3norm = np.zeros((img_height, img_width))
+    d1norm = cv2.normalize(d1img, d1norm, 0, 255, cv2.NORM_MINMAX)
+    d2norm = cv2.normalize(d2img, d2norm, 0, 255, cv2.NORM_MINMAX)
+    d3norm = cv2.normalize(d3img, d3norm, 0, 255, cv2.NORM_MINMAX)
+    dimg = np.array([d1norm, d2norm, d3norm])
     image = dimg.reshape(1, img_height, img_width, 3)
     return image
 
