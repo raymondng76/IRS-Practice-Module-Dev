@@ -355,7 +355,7 @@ if __name__ == '__main__':
     else:
         # Train
         time_limit = 600
-        highscoreY = 0.
+        highscoreY = -9999999999.
         if os.path.exists('save_stat/'+ agent_name1 + '_stat.csv'):
             with open('save_stat/'+ agent_name1 + '_stat.csv', 'r') as f:
                 read = csv.reader(f)
@@ -547,8 +547,8 @@ if __name__ == '__main__':
                     wr = csv.writer(f)
                     wr.writerow(['%.4f' % s if type(s) is float else s for s in stats3])
 
-                if highscoreY < bestY:
-                    highscoreY = bestY
+                if highscoreY < score:
+                    highscoreY = score
                     with open('save_stat/'+ agent_name1 + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
                         wr = csv.writer(f)
                         wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
