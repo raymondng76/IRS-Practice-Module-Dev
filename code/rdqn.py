@@ -270,7 +270,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma',      type=float, default=0.99)
     parser.add_argument('--seqsize',    type=int,   default=5)
     parser.add_argument('--epoch',      type=int,   default=5)
-    parser.add_argument('--batch_size', type=int,   default=5)
+    parser.add_argument('--batch_size', type=int,   default=32)
     parser.add_argument('--memory_size',type=int,   default=50000)
     parser.add_argument('--train_start',type=int,   default=5000)
     parser.add_argument('--train_rate', type=int,   default=5)
