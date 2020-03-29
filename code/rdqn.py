@@ -231,7 +231,13 @@ def transform_input(responses, img_height, img_width):
     d1img = np.array(cv2.cvtColor(responses[0][:,:,:3], cv2.COLOR_BGR2GRAY))
     d2img = np.array(cv2.cvtColor(responses[1][:,:,:3], cv2.COLOR_BGR2GRAY))
     d3img = np.array(cv2.cvtColor(responses[2][:,:,:3], cv2.COLOR_BGR2GRAY))
-    dimg = np.array([d1img, d2img, d3img])
+    d1norm = np.zeros((img_height, img_width))
+    d2norm = np.zeros((img_height, img_width))
+    d3norm = np.zeros((img_height, img_width))
+    d1norm = cv2.normalize(d1img, d1norm, 0, 255, cv2.NORM_MINMAX)
+    d2norm = cv2.normalize(d2img, d2norm, 0, 255, cv2.NORM_MINMAX)
+    d3norm = cv2.normalize(d3img, d3norm, 0, 255, cv2.NORM_MINMAX)
+    dimg = np.array([d1norm, d2norm, d3norm])
     image = dimg.reshape(1, img_height, img_width, 3)
     return image
 
@@ -256,8 +262,8 @@ def interpret_action(action):
 
 if __name__ == '__main__':
     # CUDA config
-    # tf_config = tf.ConfigProto()
-    # tf_config.gpu_options.allow_growth = True
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
 
     # argument parser
     parser = argparse.ArgumentParser()
@@ -270,9 +276,9 @@ if __name__ == '__main__':
     parser.add_argument('--gamma',      type=float, default=0.99)
     parser.add_argument('--seqsize',    type=int,   default=5)
     parser.add_argument('--epoch',      type=int,   default=5)
-    parser.add_argument('--batch_size', type=int,   default=5)
+    parser.add_argument('--batch_size', type=int,   default=32)
     parser.add_argument('--memory_size',type=int,   default=50000)
-    parser.add_argument('--train_start',type=int,   default=3000)
+    parser.add_argument('--train_start',type=int,   default=5000)
     parser.add_argument('--train_rate', type=int,   default=5)
     parser.add_argument('--target_rate',type=int,   default=1000)
     parser.add_argument('--epsilon',    type=float, default=1)
@@ -316,8 +322,9 @@ if __name__ == '__main__':
                 bestY, timestep, score, avgQ = 0., 0, 0., 0.
                 observe = env.reset()
                 image, vel = observe
+                vel = np.array(vel)
                 try:
-                    image = transform_input(image, args.img_height, args.img_width) #TODO
+                    image = transform_input(image, args.img_height, args.img_width)
                 except:
                     continue
                 history = np.stack([image] * args.seqsize, axis=1)
@@ -326,29 +333,36 @@ if __name__ == '__main__':
                 while not done:
                     timestep += 1
                     
-                    Qs = agent.critic.predict(state)[0]
-                    action = np.argmax(Qs)
-                    Qmax = np.amax(Qs)
-                    real_action = interpret_action(action)
-                    observe, reward, done, info = env.step(real_action)
+                    Qs1, Qs2, Qs3 = agent.critic.predict(state)
+                    action1, action2, action3 = np.argmax(Qs1), np.argmax(Qs2), np.argmax(Qs3)
+                    Qmax1, Qmax2, Qmax3 = np.amax(Qs1), np.amax(Qs2), np.amax(Qs3)
+                    real_action1, real_action2, real_action3 = interpret_action(action1), interpret_action(action2), interpret_action(action3)
+                    observe, reward, done, info = env.step([real_action1, real_action2, real_action3])
                     image, vel = observe
+                    vel = np.array(vel)
                     try:
                         image = transform_input(image, args.img_height, args.img_width)
                     except:
+                        print('BUG')
                         bug = True
                         break
                     history = np.append(history[:, 1:], [image], axis=1)
                     vel = vel.reshape(1, -1)
                     next_state = [history, vel]
+                    reward = np.sum(np.array(reward))
+                    info1, info2, info3 = info[0]['status'], info[1]['status'], info[2]['status']
+
                     # stats
-                    avgQ += float(Qmax)
-                    score += reward
-                    if info['Y'] > bestY:
-                        bestY = info['Y']
-                    print('%s' % (ACTION[action]), end='\r', flush=True)
+                    avgQ += float(Qmax1 + Qmax2 + Qmax3)
+                    score += float(reward)
+                    if timestep > bestY:
+                        bestY = timestep
+                    print('%s' % (ACTION[action1]), end='\r', flush=True)
+                    print('%s' % (ACTION[action2]), end='\r', flush=True)
+                    print('%s' % (ACTION[action3]), end='\r', flush=True)
 
                     if args.verbose:
-                        print('Step %d Action %s Reward %.2f Info %s:' % (timestep, real_action, reward, info['status']))
+                        print('Step %d Action1 %s Action2 %s Action3 %s Reward %.2f Info1 %s Info2 %s Info3 %s:' % (timestep, real_action1, real_action2, real_action3, reward, info1, info2, info3))
 
                     state = next_state
 
@@ -358,8 +372,8 @@ if __name__ == '__main__':
                 avgQ /= timestep
 
                 # done
-                print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f Info %s'
-                        % (episode, bestY, timestep, score, avgQ, info['status']))
+                print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f Info1 %s Info2 %s Info3 %s'
+                        % (episode, bestY, timestep, score, avgQ, info1, info2, info3))
 
                 episode += 1
             except KeyboardInterrupt:
@@ -368,7 +382,7 @@ if __name__ == '__main__':
     else:
         # Train
         time_limit = 600
-        highscoreY = 0.
+        highscoreY = -9999999999.
         if os.path.exists('save_stat/'+ agent_name + '_stat.csv'):
             with open('save_stat/'+ agent_name + '_stat.csv', 'r') as f:
                 read = csv.reader(f)
@@ -418,15 +432,11 @@ if __name__ == '__main__':
                         global_train_num = 0
 
                     (action1, policy1, Qmax1), (action2, policy2, Qmax2), (action3, policy3, Qmax3) = agent.get_action(state)
-                    real_action1 = interpret_action(action1)
-                    real_action2 = interpret_action(action2)
-                    real_action3 = interpret_action(action3)
+                    real_action1, real_action2, real_action3 = interpret_action(action1), interpret_action(action2), interpret_action(action3)
                     observe, reward, done, info = env.step([real_action1,real_action2,real_action3])
                     image, vel = observe
                     vel = np.array(vel)
-                    info1 = info[0]['status']
-                    info2 = info[1]['status']
-                    info3 = info[2]['status']
+                    info1, info2, info3 = info[0]['status'], info[1]['status'], info[2]['status']
 
                     try:
                         if timestep < 3 and info[0]['status'] == 'landed' and info[1]['status'] == 'landed' and info[2]['status'] == 'landed':
@@ -445,8 +455,8 @@ if __name__ == '__main__':
                     # stats
                     avgQ += float(Qmax1 + Qmax2 + Qmax3)
                     score += float(reward)
-                    if timestep > bestY:
-                        bestY = timestep
+                    if float(reward) > bestY:
+                        bestY = float(reward)
 
                     print('%s | %s' % (ACTION[action1], ACTION[policy1]), end='\r', flush=True)
                     print('%s | %s' % (ACTION[action2], ACTION[policy2]), end='\r', flush=True)
@@ -478,8 +488,8 @@ if __name__ == '__main__':
                 with open('save_stat/'+ agent_name + '_stat.csv', 'a', encoding='utf-8', newline='') as f:
                     wr = csv.writer(f)
                     wr.writerow(['%.4f' % s if type(s) is float else s for s in stats])
-                if highscoreY < bestY:
-                    highscoreY = bestY
+                if highscoreY < score:
+                    highscoreY = score
                     with open('save_stat/'+ agent_name + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
                         wr = csv.writer(f)
                         wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
