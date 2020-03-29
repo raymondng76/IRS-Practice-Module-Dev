@@ -46,16 +46,32 @@ class Env:
             self.dc.moveDrone(drone, [0,0,0], 0.1 * timeslice)
             self.dc.hoverAsync(drone).join()
         
-        # move drone to initial position
+        # self.dc.moveDrone('DroneTarget', [0,0,0], 0.1 * timeslice)
+        # d1pos = self.dc.getMultirotorState('Drone1').kinematics_estimated.position
+        # d2pos = self.dc.getMultirotorState('Drone2').kinematics_estimated.position
+        # d3pos = self.dc.getMultirotorState('Drone3').kinematics_estimated.position
+        # self.dc.moveDrone('Drone1', [d1pos.x_val, d1pos.y_val, -2.5], 0.5)
+        # self.dc.moveDrone('Drone2', [d2pos.x_val, d2pos.y_val, -2.5], 0.5)
+        # self.dc.moveDrone('Drone3', [d3pos.x_val, d3pos.y_val, -2.5], 0.5)
+
+        # for drone in droneList:
+        #     self.dc.hoverAsync(drone).join()
+
+        # # move drone to initial position
         for drone in droneList[:-1]:
             # print('other loop')
             pos = self.dc.getMultirotorState(drone).kinematics_estimated.position
-            self.dc.moveDrone(drone, [pos.x_val, pos.y_val, -2.5], 0.5)
+            # self.dc.moveDrone(drone, [pos.x_val, pos.y_val, -2.5], 0.5)
+            self.dc.client.moveByVelocityZAsync(vx=pos.x_val, vy=pos.y_val, z=-2.5, duration=0.5, vehicle_name=drone)
             # adjust drone1, drone2 and drone3 camera angle
 
         self.dc.setCameraAngle(-30, 'Drone1', 0)
         self.dc.client.simSetCameraOrientation('4', airsim.to_quaternion(-30 * math.pi/180,0,62 * math.pi/180), vehicle_name='Drone2')
         self.dc.client.simSetCameraOrientation('4', airsim.to_quaternion(-30 * math.pi/180,0,-62 * math.pi/180), vehicle_name='Drone3')
+
+        for drone in droneList:
+            print(f'RESET: {drone} pos: {self.dc.getMultirotorState(drone).kinematics_estimated.position}')
+            print(f'RESET: {drone} vel: {self.dc.getMultirotorState(drone).kinematics_estimated.linear_velocity}')
 
         responses = []
         for drone in droneList[:-1]:
@@ -91,8 +107,11 @@ class Env:
         #print(f'quad_vel: {quad_vel} \n offset: {quad_offset}')
         self.dc.simPause(False)
         # Target follow fixed path now..
-        self.dc.moveDrone("DroneTarget", [0.25,0,0], 2 * timeslice)
-
+        # dtpos = self.dc.getMultirotorState(droneList[-1]).kinematics_estimated.linear_velocity
+        self.dc.moveDrone("DroneTarget", [0.1,0,0], 2 * timeslice)
+        for drone in droneList:
+            print(f'STEP (Target): {drone} pos: {self.dc.getMultirotorState(drone).kinematics_estimated.position}')
+            print(f'STEP (Target): {drone} vel: {self.dc.getMultirotorState(drone).kinematics_estimated.linear_velocity}')
         # Calculations for Drone1
         has_collided = [False, False, False]
         landed = [False, False, False]
@@ -100,8 +119,13 @@ class Env:
         for droneidx in range(len(droneList[:-1])):
             print(f'Drone{droneidx}: X:{quad_vel[droneidx].x_val+quad_offset[droneidx][0]}, Y:{quad_vel[droneidx].y_val+quad_offset[droneidx][1]}, Z:{quad_vel[droneidx].z_val+quad_offset[droneidx][2]}')
             self.dc.moveDrone(droneList[droneidx], [quad_offset[droneidx][0], quad_offset[droneidx][1], quad_offset[droneidx][2]], timeslice)
-            # self.dc.moveDrone(droneList[droneidx], [quad_vel[droneidx].x_val+quad_offset[droneidx][0], quad_vel[droneidx].y_val+quad_offset[droneidx][1], quad_vel[droneidx].z_val+quad_offset[droneidx][2]], timeslice)
-
+            # pos = self.dc.getMultirotorState(droneList[droneidx]).kinematics_estimated.position
+            # self.dc.moveDrone(droneList[droneidx], [quad_vel[droneidx].x_val+quad_offset[droneidx][0], quad_vel[droneidx].y_val + quad_offset[droneidx][1], quad_vel[droneidx].z_val], timeslice)
+            # self.dc.client.moveToPositionAsync(droneList[droneidx], pos.x_val+quad_offset[droneidx][0], pos.y_val+quad_offset[droneidx][1], pos.z_val+quad_offset[droneidx][2], timeslice)
+        for drone in droneList:
+            print(f'STEP (D1D2D3): {drone} pos: {self.dc.getMultirotorState(drone).kinematics_estimated.position}')
+            print(f'STEP (D1D2D3): {drone} vel: {self.dc.getMultirotorState(drone).kinematics_estimated.linear_velocity}')
+        
         collision_count = [0, 0, 0]
         start_time = time.time()
         while time.time() - start_time < timeslice:
@@ -157,7 +181,8 @@ class Env:
         done = False
         for droneidx in range(len(droneList[:-1])):
             print(f'Drone{droneidx}: collided? {has_collided[droneidx]}, outY? {quad_pos[droneidx].y_val <= outY}')
-            dead = has_collided[droneidx] or quad_pos[droneidx].y_val <= outY or self.gps_out_bounds(gps_dist)
+            # dead = has_collided[droneidx] or quad_pos[droneidx].y_val <= outY or self.gps_out_bounds(gps_dist)
+            dead = has_collided[droneidx] or self.gps_out_bounds(gps_dist)
             # done[droneidx] = dead
             if dead:
                 done = True
@@ -198,7 +223,7 @@ class Env:
     def gps_out_bounds(self, gpslist):
         stats = False
         for gps in gpslist:
-            if gps > 9 or gps < 2.3:
+            if gps > 10 or gps < 1.5:
                 stats = True
                 break
         return stats

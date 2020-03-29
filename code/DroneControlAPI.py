@@ -153,10 +153,10 @@ class DroneControl:
         pos = [x_val, y_val, z_val]
         """
         if drone in self.droneList:
-            self.client.moveByVelocityZAsync(vehicle_name=drone, 
+            self.client.moveByVelocityAsync(vehicle_name=drone, 
                                              vx=position[0], 
                                              vy=position[1], 
-                                             z=position[2],
+                                             vz=position[2],
                                              duration=duration).join()
         else:
             print('Drone does not exists!')
