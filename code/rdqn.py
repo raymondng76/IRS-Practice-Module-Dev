@@ -449,8 +449,8 @@ if __name__ == '__main__':
                     # stats
                     avgQ += float(Qmax1 + Qmax2 + Qmax3)
                     score += float(reward)
-                    if timestep > bestY:
-                        bestY = timestep
+                    if float(reward) > bestY:
+                        bestY = float(reward)
 
                     print('%s | %s' % (ACTION[action1], ACTION[policy1]), end='\r', flush=True)
                     print('%s | %s' % (ACTION[action2], ACTION[policy2]), end='\r', flush=True)
