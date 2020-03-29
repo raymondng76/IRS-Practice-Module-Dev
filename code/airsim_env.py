@@ -1,5 +1,10 @@
 # Based on: https://github.com/sunghoonhong/AirsimDRL/blob/master/airsim_env.py
+"""
+Date: 1/2/2020
+Team: Kenneth Goh (A0198544N) Raymond Ng (A0198543R) Wong Yoke Keong (A0195365U)
 
+Intelligent Robotic Systems Practice Module
+"""
 import time
 import numpy as np
 import airsim
@@ -19,11 +24,11 @@ floorZ = 1.18
 goals = [7, 17, 27.5, 45, goalY]
 speed_limit = 0.2
 ACTION = ['00', '+x', '+y', '+z', '-x', '-y', '-z']
+targetdrone_espsilon = 0.35
 
 droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
 base_dir = Path('..')
 yolo_weights = base_dir/'weights'/'drone.h5'
-# yolo_weights = '..\weights\drone.h5'
 
 class Env:
     def __init__(self):
@@ -45,44 +50,30 @@ class Env:
             self.dc.moveDrone(drone, [0,0,-1], 2 * timeslice)
             self.dc.moveDrone(drone, [0,0,0], 0.1 * timeslice)
             self.dc.hoverAsync(drone).join()
-        
-        # self.dc.moveDrone('DroneTarget', [0,0,0], 0.1 * timeslice)
-        # d1pos = self.dc.getMultirotorState('Drone1').kinematics_estimated.position
-        # d2pos = self.dc.getMultirotorState('Drone2').kinematics_estimated.position
-        # d3pos = self.dc.getMultirotorState('Drone3').kinematics_estimated.position
-        # self.dc.moveDrone('Drone1', [d1pos.x_val, d1pos.y_val, -2.5], 0.5)
-        # self.dc.moveDrone('Drone2', [d2pos.x_val, d2pos.y_val, -2.5], 0.5)
-        # self.dc.moveDrone('Drone3', [d3pos.x_val, d3pos.y_val, -2.5], 0.5)
-
-        # for drone in droneList:
-        #     self.dc.hoverAsync(drone).join()
 
         # # move drone to initial position
         for drone in droneList[:-1]:
-            # print('other loop')
             pos = self.dc.getMultirotorState(drone).kinematics_estimated.position
-            # self.dc.moveDrone(drone, [pos.x_val, pos.y_val, -2.5], 0.5)
-            self.dc.client.moveByVelocityZAsync(vx=pos.x_val, vy=pos.y_val, z=-2.5, duration=0.5, vehicle_name=drone)
-            # adjust drone1, drone2 and drone3 camera angle
+            self.dc.client.moveByVelocityZAsync(vx=pos.x_val, vy=pos.y_val, z=-1.0, duration=0.5, vehicle_name=drone)
 
-        self.dc.setCameraAngle(-30, 'Drone1', 0)
-        self.dc.client.simSetCameraOrientation('4', airsim.to_quaternion(-30 * math.pi/180,0,62 * math.pi/180), vehicle_name='Drone2')
-        self.dc.client.simSetCameraOrientation('4', airsim.to_quaternion(-30 * math.pi/180,0,-62 * math.pi/180), vehicle_name='Drone3')
-
-        for drone in droneList:
-            print(f'RESET: {drone} pos: {self.dc.getMultirotorState(drone).kinematics_estimated.position}')
-            print(f'RESET: {drone} vel: {self.dc.getMultirotorState(drone).kinematics_estimated.linear_velocity}')
-
+        # adjust drone1, drone2 and drone3 camera angle
+        self.dc.setCameraAngle(-30, droneList[0], 0)
+        self.dc.client.simSetCameraOrientation('4', airsim.to_quaternion(-30 * math.pi/180,0,62 * math.pi/180), vehicle_name=droneList[1])
+        self.dc.client.simSetCameraOrientation('4', airsim.to_quaternion(-30 * math.pi/180,0,-62 * math.pi/180), vehicle_name=droneList[2])
+        time.sleep(1)
+        # Drone1, Drone2, Drone3 take image
         responses = []
         for drone in droneList[:-1]:
-            img = self.dc.getImage(drone)
-            # cv2.imwrite(f'{drone}.png', img)
+            cam = '0' if drone == droneList[0] else '4'
+            img = self.dc.getImage(drone, cam)
+            # cv2.imwrite(f'reset_{drone}.png', cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
             responses.append(self.dc.getImage(drone))
 
-        gps_drone1 = self.dc.getGpsData('Drone1')
-        gps_drone2 = self.dc.getGpsData('Drone2')
-        gps_drone3 = self.dc.getGpsData('Drone3')
-        gps_droneTarget = self.dc.getGpsData('DroneTarget')
+        # All drone measure GPS distance
+        gps_drone1 = self.dc.getGpsData(droneList[0])
+        gps_drone2 = self.dc.getGpsData(droneList[1])
+        gps_drone3 = self.dc.getGpsData(droneList[2])
+        gps_droneTarget = self.dc.getGpsData(droneList[3])
 
         gps_dist = []
         target = (gps_droneTarget.latitude, gps_droneTarget.longitude)
@@ -90,8 +81,6 @@ class Env:
             source = (x.latitude, x.longitude)
             gps_dist.append(distance.distance(source, target).m)
 
-        # quad_vel = np.array([quad_vel.x_val, quad_vel.y_val, quad_vel.z_val])
-        print(gps_dist)
         observation = [responses, gps_dist]
         return observation
 
@@ -104,28 +93,23 @@ class Env:
         quad_vel = []
         for drone in droneList[:-1]:
             quad_vel.append(self.dc.getMultirotorState(drone).kinematics_estimated.linear_velocity)
-        #print(f'quad_vel: {quad_vel} \n offset: {quad_offset}')
+
         self.dc.simPause(False)
-        # Target follow fixed path now..
-        # dtpos = self.dc.getMultirotorState(droneList[-1]).kinematics_estimated.linear_velocity
-        self.dc.moveDrone("DroneTarget", [0.1,0,0], 2 * timeslice)
-        for drone in droneList:
-            print(f'STEP (Target): {drone} pos: {self.dc.getMultirotorState(drone).kinematics_estimated.position}')
-            print(f'STEP (Target): {drone} vel: {self.dc.getMultirotorState(drone).kinematics_estimated.linear_velocity}')
-        # Calculations for Drone1
+        
+        # Target drone takes random step in X or Y axis
+        if np.random.random() > targetdrone_espsilon: # Higher chance to move in X axis
+            self.dc.moveDrone(droneList[3], [0.1,0,0], 2 * timeslice)
+        else:
+            self.dc.moveDrone(droneList[3], [0,0.1,0], 2 * timeslice)
+        
+        # All follower drones take next move
         has_collided = [False, False, False]
         landed = [False, False, False]
-        #self.dc.moveDrone('Drone1', [quad_offset[0], quad_offset[1], quad_offset[2]], timeslice)
-        for droneidx in range(len(droneList[:-1])):
-            print(f'Drone{droneidx}: X:{quad_vel[droneidx].x_val+quad_offset[droneidx][0]}, Y:{quad_vel[droneidx].y_val+quad_offset[droneidx][1]}, Z:{quad_vel[droneidx].z_val+quad_offset[droneidx][2]}')
-            self.dc.moveDrone(droneList[droneidx], [quad_offset[droneidx][0], quad_offset[droneidx][1], quad_offset[droneidx][2]], timeslice)
-            # pos = self.dc.getMultirotorState(droneList[droneidx]).kinematics_estimated.position
-            # self.dc.moveDrone(droneList[droneidx], [quad_vel[droneidx].x_val+quad_offset[droneidx][0], quad_vel[droneidx].y_val + quad_offset[droneidx][1], quad_vel[droneidx].z_val], timeslice)
-            # self.dc.client.moveToPositionAsync(droneList[droneidx], pos.x_val+quad_offset[droneidx][0], pos.y_val+quad_offset[droneidx][1], pos.z_val+quad_offset[droneidx][2], timeslice)
-        for drone in droneList:
-            print(f'STEP (D1D2D3): {drone} pos: {self.dc.getMultirotorState(drone).kinematics_estimated.position}')
-            print(f'STEP (D1D2D3): {drone} vel: {self.dc.getMultirotorState(drone).kinematics_estimated.linear_velocity}')
         
+        for droneidx in range(len(droneList[:-1])):
+            self.dc.moveDrone(droneList[droneidx], [quad_offset[droneidx][0], quad_offset[droneidx][1], quad_offset[droneidx][2]], 2* timeslice)
+
+        # Get follower drones position and linear velocity        
         collision_count = [0, 0, 0]
         start_time = time.time()
         while time.time() - start_time < timeslice:
@@ -143,7 +127,7 @@ class Env:
                 collided[droneidx] = self.dc.simGetCollisionInfo(drone).has_collided
                 land = (quad_vel[droneidx].x_val == 0 and quad_vel[droneidx].y_val == 0 and quad_vel[droneidx].z_val == 0)
                 landed[droneidx] = land or quad_pos[droneidx].z_val > floorZ
-            #print(f'collided var: {collided}, landed var: {landed}')
+            
             has_collided = [False, False, False]
             for droneidx in range(len(droneList[:-1])):
                 collision = collided[droneidx] or landed[droneidx]
@@ -153,18 +137,20 @@ class Env:
                     has_collided[droneidx] = True
                     break
         self.dc.simPause(True)
-
-        # observe with depth camera
-        #responses = self.client.simGetImages([airsim.ImageRequest(1, airsim.ImageType.DepthVis, True)])
+        time.sleep(1)
+        # All follower drones take image
         responses = []
         for drone in droneList[:-1]:
-            responses.append(self.dc.getImage(drone))
+            cam = '0' if drone == droneList[0] else '4'
+            img = self.dc.getImage(drone, cam)
+            # cv2.imwrite(f'step_{drone}.png', cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+            responses.append(img)
 
         # get distance between follower and target
-        gps_drone1 = self.dc.getGpsData('Drone1')
-        gps_drone2 = self.dc.getGpsData('Drone2')
-        gps_drone3 = self.dc.getGpsData('Drone3')
-        gps_droneTarget = self.dc.getGpsData('DroneTarget')
+        gps_drone1 = self.dc.getGpsData(droneList[0])
+        gps_drone2 = self.dc.getGpsData(droneList[1])
+        gps_drone3 = self.dc.getGpsData(droneList[2])
+        gps_droneTarget = self.dc.getGpsData(droneList[3])
         
         gps_dist = []
         target = (gps_droneTarget.latitude, gps_droneTarget.longitude)
@@ -180,18 +166,13 @@ class Env:
         # decide whether done
         done = False
         for droneidx in range(len(droneList[:-1])):
-            print(f'Drone{droneidx}: collided? {has_collided[droneidx]}, outY? {quad_pos[droneidx].y_val <= outY}')
-            # dead = has_collided[droneidx] or quad_pos[droneidx].y_val <= outY or self.gps_out_bounds(gps_dist)
             dead = has_collided[droneidx] or self.gps_out_bounds(gps_dist)
-            # done[droneidx] = dead
             if dead:
                 done = True
-            print(f'Drone{droneidx}: dead? {dead}')
+            # print(f'Drone{droneidx}: dead? {dead}')
 
         # compute reward
-        # reward = self.compute_reward(responses, quad_pos, quad_vel, dead)
         reward = self.compute_reward(responses, gps_dist, done)
-        # reward=-1
 
         # log info
         loginfo = []
@@ -210,11 +191,9 @@ class Env:
             else:
                 info['status'] = 'going'
             loginfo.append(info)
-            # quad_vel.append(np.array([quad_vel[droneidx].x_val, quad_vel[droneidx].y_val, quad_vel[droneidx].z_val]))
-            # observation = [responses, gps_dist, quad_vel]
             observation = [responses, gps_dist]
         # observation = [responses[D1,D2,D3], gps_dist[D1,D2,D3]]
-        # reward = [?]
+        # reward = [R]
         # done = [D1,D2,D3]
         # loginfo = [D1{'Y','level','status'},D2{'Y','level','status'},D3{'Y','level','status'}]
         # print(f'done : {done} and all {all(done)}')
@@ -228,7 +207,6 @@ class Env:
                 break
         return stats
 
-    # def compute_reward(self, responses, quad_pos, quad_vel, dead):
     def compute_reward(self, responses, gps_dist, dead):
         reward = [None] * len(droneList[:-1])
         for droneidx in range(len(droneList[:-1])):
@@ -236,34 +214,33 @@ class Env:
             img = responses[droneidx]
             try:
                 bbox = self.infer_model.get_yolo_boxes(img[:,:,:3])
+                print(f'{droneList[droneidx]}: Xmin {bbox.xmin}, Xmax {bbox.xmax}, Ymin {bbox.ymin}, Ymax {bbox.ymax}')
+                img_status = self.calculate_bbox_zone(bbox, img)
             except:
                 bbox = BoundBox(xmin=0, xmax=0, ymin=0, ymax=0)
-            img_status = self.calculate_bbox_zone(bbox, img)
+                img_status = 'dead'            
+
+            # Save image for visual processing
+            test_img = cv2.cvtColor(img.copy(), cv2.COLOR_BGR2RGB)
+            cv2.rectangle(test_img, (bbox.xmin, bbox.ymin), (bbox.xmax, bbox.ymax), (0,0,255), 2)
+            cv2.imwrite(f'Reward_{droneList[droneidx]}.png', test_img)
 
             if dead or img_status == 'dead':
                 reward[droneidx] = config.reward['dead']
-            # elif quad_pos.y_val >= goals[self.level]:
-            #     self.level += 1
-            #     # reward = config.reward['forward'] * (1 + self.level / len(goals))
-            #     reward = config.reward['goal'] * (1 + self.level / len(goals))
-            # elif speed < speed_limit:
             elif img_status == 'slow':
                 reward[droneidx] = config.reward['slow']
             elif img_status == 'normal':
                 reward[droneidx] = config.reward['normal']
             else:
-                # reward = float(vel[1]) * 0.1
                 reward[droneidx] = config.reward['forward']
-                
-            gps = gps_dist[droneidx]
-            if gps > 9 or gps < 2.3:
-                reward[droneidx] = reward[droneidx] + config.reward['dead']
-            else:
-                reward[droneidx] = reward[droneidx] + config.reward['forward']
-            # elif vel[1] > 0:
-            #     reward = config.reward['forward'] * (1 + self.level / len(goals))
-            # else:
-            #     reward = config.reward['normal']
+
+            # Append GPS rewards
+            if img_status != 'dead':            
+                gps = gps_dist[droneidx]
+                if gps > 9 or gps < 2.3:
+                    reward[droneidx] = reward[droneidx] + config.reward['dead']
+                else:
+                    reward[droneidx] = reward[droneidx] + config.reward['forward']
         return reward
     
     def _calculate_zone_param(self, img_size):

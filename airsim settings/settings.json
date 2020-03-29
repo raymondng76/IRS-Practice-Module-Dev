@@ -1,7 +1,7 @@
 {
   "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
   "SettingsVersion": 1.2,
-  "ClockSpeed": 3,
+  "ClockSpeed": 5,
   "ViewMode": "SpringArmChase",
   "SimMode": "Multirotor",
   "CameraDefaults": {
@@ -16,7 +16,7 @@
   "SubWindows": [
     {"WindowID": 0, "CameraName": "0", "ImageType": 3, "Visible": false},
     {"WindowID": 1, "CameraName": "0", "ImageType": 5, "Visible": false},
-    {"WindowID": 2, "CameraName": "0", "ImageType": 0, "Visible": false}
+    {"WindowID": 2, "CameraName": "0", "ImageType": 0, "Visible": true}
   ],
   "Vehicles": {
 	"Drone1": {
