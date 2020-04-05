@@ -38,9 +38,9 @@ agent_name3 = 'rddpg3'
 
 
 class RDDPGAgent(object):
-    
+
     def __init__(self, state_size, action_size, actor_lr, critic_lr, tau,
-                gamma, lambd, batch_size, memory_size, 
+                gamma, lambd, batch_size, memory_size,
                 epsilon, epsilon_end, decay_step, load_model, agent_name):
         self.state_size = state_size
         self.vel_size = 1
@@ -69,7 +69,7 @@ class RDDPGAgent(object):
         self.sess.run(tf.global_variables_initializer())
         if load_model:
             self.load_model('./save_model/'+ agent_name)
-        
+
         self.target_actor.set_weights(self.actor.get_weights())
         self.target_critic.set_weights(self.critic.get_weights())
 
@@ -116,7 +116,7 @@ class RDDPGAgent(object):
         image_process = GRU(48, kernel_initializer='he_normal', use_bias=False)(image_process)
         image_process = BatchNormalization()(image_process)
         image_process = Activation('tanh')(image_process)
-        
+
         # vel process
         vel = Input(shape=[self.vel_size])
         vel_process = Dense(48, kernel_initializer='he_normal', use_bias=False)(vel)
@@ -136,7 +136,7 @@ class RDDPGAgent(object):
         policy = Dense(self.action_size, kernel_initializer=tf.random_uniform_initializer(minval=-3e-3, maxval=3e-3))(policy)
         policy = Lambda(lambda x: K.clip(x, self.action_low, self.action_high))(policy)
         actor = Model(inputs=[image, vel], outputs=policy)
-        
+
         # Critic
         action = Input(shape=[self.action_size])
         action_process = Dense(48, kernel_initializer='he_normal', use_bias=False)(action)
@@ -155,7 +155,7 @@ class RDDPGAgent(object):
 
         actor._make_predict_function()
         critic._make_predict_function()
-        
+
         return actor, critic
 
     def build_actor_optimizer(self):
@@ -178,7 +178,7 @@ class RDDPGAgent(object):
     def build_critic_optimizer(self):
         y = K.placeholder(shape=(None, 1), dtype='float32')
         pred = self.critic.output
-        
+
         loss = K.mean(K.square(pred - y))
         # Huber Loss
         # error = K.abs(y - pred)
@@ -213,7 +213,7 @@ class RDDPGAgent(object):
         dones = np.zeros((self.batch_size, 1))
 
         targets = np.zeros((self.batch_size, 1))
-        
+
         for i, sample in enumerate(batch):
             images[i], vels[i] = sample[0]
             actions[i] = sample[1]
@@ -231,9 +231,9 @@ class RDDPGAgent(object):
         critic_loss = self.critic_update(states + [actions, targets])
         return actor_loss[0], critic_loss[0]
 
-    def append_memory(self, state, action, reward, next_state, done):        
+    def append_memory(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
-        
+
     def load_model(self, name):
         if os.path.exists(name + '_actor.h5'):
             self.actor.load_weights(name + '_actor.h5')
@@ -292,11 +292,10 @@ if __name__ == '__main__':
     parser.add_argument('--lambd',      type=float, default=0.90)
     parser.add_argument('--seqsize',    type=int,   default=5)
     parser.add_argument('--epoch',      type=int,   default=1)
-    parser.add_argument('--batch_size', type=int,   default=2)#64
+    parser.add_argument('--batch_size', type=int,   default=64)
     parser.add_argument('--memory_size',type=int,   default=50000)
-    #parser.add_argument('--train_start',type=int,   default=5000)
-    parser.add_argument('--train_start',type=int,   default=4)
-    parser.add_argument('--train_rate', type=int,   default=1)#4
+    parser.add_argument('--train_start',type=int,   default=1000)
+    parser.add_argument('--train_rate', type=int,   default=4)
     parser.add_argument('--epsilon',    type=float, default=1)
     parser.add_argument('--epsilon_end',type=float, default=0.01)
     parser.add_argument('--decay_step', type=int,   default=20000)
@@ -426,7 +425,7 @@ if __name__ == '__main__':
 
                 if bug:
                     continue
-                
+
                 avgQ /= timestep
                 avgvel /= timestep
 
@@ -476,7 +475,7 @@ if __name__ == '__main__':
                 read = csv.reader(f)
                 highscoreY = float(next(reversed(list(read)))[0])
                 print('Best Y:', highscoreY)
-        
+
         global_step = 0
         while True:
             try:
@@ -501,15 +500,15 @@ if __name__ == '__main__':
                 history1 = np.stack([image1] * args.seqsize, axis=1)
                 history2 = np.stack([image2] * args.seqsize, axis=1)
                 history3 = np.stack([image3] * args.seqsize, axis=1)
-                
+
                 vel1 = vel[0].reshape(1, -1)
                 vel2 = vel[1].reshape(1, -1)
                 vel3 = vel[2].reshape(1, -1)
-                
+
                 state1 = [history1, vel1]
                 state2 = [history2, vel2]
                 state3 = [history3, vel3]
-                
+
                 while not done and timestep < time_limit:
                     timestep += 1
                     global_step += 1
@@ -520,15 +519,15 @@ if __name__ == '__main__':
                             a_loss1, c_loss1 = agent1.train_model()
                             actor_loss1 += float(a_loss1)
                             critic_loss1 += float(c_loss1)
-                            
+
                             a_loss2, c_loss2 = agent2.train_model()
                             actor_loss2 += float(a_loss2)
                             critic_loss2 += float(c_loss2)
-                            
+
                             a_loss3, c_loss3 = agent3.train_model()
                             actor_loss3 += float(a_loss3)
                             critic_loss3 += float(c_loss3)
-                            
+
                             train_num += 1
                         if args.verbose:
                             print(f'update target models')
@@ -555,17 +554,17 @@ if __name__ == '__main__':
                     history1 = np.append(history1[:, 1:], [image1], axis=1)
                     history2 = np.append(history2[:, 1:], [image2], axis=1)
                     history3 = np.append(history3[:, 1:], [image3], axis=1)
-                    
+
                     vel1 = vel[0].reshape(1, -1)
                     vel2 = vel[1].reshape(1, -1)
                     vel3 = vel[2].reshape(1, -1)
-                    
+
                     next_state1 = [history1, vel1]
                     next_state2 = [history2, vel2]
                     next_state3 = [history3, vel3]
-                    
+
                     reward = np.sum(np.array(reward))
-                    
+
                     agent1.append_memory(state1, action1, reward, next_state1, done)
                     agent2.append_memory(state2, action2, reward, next_state2, done)
                     agent3.append_memory(state3, action3, reward, next_state3, done)
@@ -583,7 +582,7 @@ if __name__ == '__main__':
                     avgAct += float(np.linalg.norm(real_action2))
                     avgAct += float(np.linalg.norm(real_action3))
                     avgAct /= 3
-                    
+
                     score += reward
                     if float(reward) > bestY:
                         bestY = float(reward)
@@ -648,7 +647,7 @@ if __name__ == '__main__':
                 with open('save_stat/'+ agent_name3 + '_stat.csv', 'a', encoding='utf-8', newline='') as f:
                     wr = csv.writer(f)
                     wr.writerow(['%.4f' % s if type(s) is float else s for s in stats3])
-                
+
                 if highscoreY < score:
                     highscoreY = score
                     with open('save_stat/'+ agent_name1 + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
@@ -658,14 +657,14 @@ if __name__ == '__main__':
                     with open('save_stat/'+ agent_name2 + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
                         wr = csv.writer(f)
                         wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
-                    
+
                     with open('save_stat/'+ agent_name3 + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
                         wr = csv.writer(f)
                         wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
                     agent1.save_model('./save_model/'+ agent_name1 + '_best')
                     agent2.save_model('./save_model/'+ agent_name2 + '_best')
                     agent3.save_model('./save_model/'+ agent_name3 + '_best')
-                
+
                 agent1.save_model('./save_model/'+ agent_name1)
                 agent2.save_model('./save_model/'+ agent_name2)
                 agent3.save_model('./save_model/'+ agent_name3)
