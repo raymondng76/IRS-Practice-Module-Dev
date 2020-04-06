@@ -297,47 +297,86 @@ if __name__ == '__main__':
 
                 observe = env.reset()
                 image, vel = observe
+                vel = np.array(vel)
                 try:
-                    image = transform_input(image, args.img_height, args.img_width)
+                    image1 = transform_input(image[0], args.img_height, args.img_width)
+                    image2 = transform_input(image[1], args.img_height, args.img_width)
+                    image3 = transform_input(image[2], args.img_height, args.img_width)
                 except:
                     continue
-                history = np.stack([image] * args.seqsize, axis=1)
-                vel = vel.reshape(1, -1)
-                state = [history, vel]
+                history1 = np.stack([image1] * args.seqsize, axis=1)
+                history2 = np.stack([image2] * args.seqsize, axis=1)
+                history3 = np.stack([image3] * args.seqsize, axis=1)
+
+                vel1 = vel[0].reshape(1, -1)
+                vel2 = vel[1].reshape(1, -1)
+                vel3 = vel[2].reshape(1, -1)
+
+                state1 = [history1, vel1]
+                state2 = [history2, vel2]
+                state3 = [history3, vel3]
+
                 while not done:
                     timestep += 1
-                    # snapshot = np.zeros([0, args.img_width, 1])
-                    # for snap in state[0][0]:
-                    #     snapshot = np.append(snapshot, snap, axis=0)
-                    # snapshot *= 128
-                    # snapshot += 128
-                    # cv2.imshow('%s' % timestep, np.uint8(snapshot))
-                    # cv2.waitKey(0)
-                    Qs = agent.critic.predict(state)[0]
-                    action = np.argmax(Qs)
-                    Qmax = np.amax(Qs)
-                    real_action = interpret_action(action)
-                    observe, reward, done, info = env.step(real_action)
+
+                    Qs1 = agent1.critic.predict(state1)[0]
+                    Qs2 = agent2.critic.predict(state2)[0]
+                    Qs3 = agent3.critic.predict(state3)[0]
+
+                    action1 = np.argmax(Qs1)
+                    action2 = np.argmax(Qs2)
+                    action3 = np.argmax(Qs3)
+
+                    Qmax1 = np.amax(Qs1)
+                    Qmax2 = np.amax(Qs2)
+                    Qmax3 = np.amax(Qs3)
+
+                    real_action1 = interpret_action(action1)
+                    real_action2 = interpret_action(action2)
+                    real_action3 = interpret_action(action3)
+
+                    observe, reward, done, info = env.step([real_action1, real_action2, real_action3])
                     image, vel = observe
+                    vel = np.array(vel)
+                    info1, info2, info3 = info[0]['status'], info[1]['status'], info[2]['status']
+
                     try:
-                        image = transform_input(image, args.img_height, args.img_width)
+                        image1 = transform_input(image[0], args.img_height, args.img_width)
+                        image2 = transform_input(image[1], args.img_height, args.img_width)
+                        image3 = transform_input(image[2], args.img_height, args.img_width)
                     except:
+                        print('BUG')
                         bug = True
                         break
-                    history = np.append(history[:, 1:], [image], axis=1)
-                    vel = vel.reshape(1, -1)
-                    next_state = [history, vel]
+
+                    history1 = np.append(history1[:, 1:], [image1], axis=1)
+                    history2 = np.append(history2[:, 1:], [image2], axis=1)
+                    history3 = np.append(history3[:, 1:], [image3], axis=1)
+
+                    vel1 = vel[0].reshape(1, -1)
+                    vel2 = vel[1].reshape(1, -1)
+                    vel3 = vel[2].reshape(1, -1)
+
+                    next_state1 = [history1, vel1]
+                    next_state2 = [history2, vel2]
+                    next_state3 = [history3, vel3]
+
                     # stats
-                    avgQ += float(Qmax)
-                    score += reward
-                    if info['Y'] > bestY:
-                        bestY = info['Y']
-                    print('%s' % (ACTION[action]), end='\r', flush=True)
+                    totalQmax = Qmax1 + Qmax2 + Qmax3
+                    avgQ += float(totalQmax)
+                    score += float(reward)
+                    if float(reward) > bestY:
+                        bestY = float(reward)
+                    print('%s' % (ACTION[action1]), end='\r', flush=True)
+                    print('%s' % (ACTION[action2]), end='\r', flush=True)
+                    print('%s' % (ACTION[action3]), end='\r', flush=True)
 
                     if args.verbose:
-                        print('Step %d Action %s Reward %.2f Info %s:' % (timestep, real_action, reward, info['status']))
+                        print('Step %d Action1 %s Action2 %s Action3 %s Reward %.2f Info1 %s Info2 %s Info3 %s:' % (timestep, real_action1, real_action2, real_action3, reward, info1, info2, info3))
 
-                    state = next_state
+                    state1 = next_state1
+                    state2 = next_state2
+                    state3 = next_state3
 
                 if bug:
                     continue
@@ -345,8 +384,8 @@ if __name__ == '__main__':
                 avgQ /= timestep
 
                 # done
-                print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f Info %s'
-                        % (episode, bestY, timestep, score, avgQ, info['status']))
+                print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f Info1 %s Info2 %s Info3 %s'
+                        % (episode, bestY, timestep, score, avgQ, info1, info2, info3))
 
                 episode += 1
             except KeyboardInterrupt:
@@ -354,7 +393,7 @@ if __name__ == '__main__':
                 break
     else:
         # Train
-        time_limit = 600
+        time_limit = 9999999
         highscoreY = -9999999999.
         if os.path.exists('save_stat/'+ agent_name1 + '_stat.csv'):
             with open('save_stat/'+ agent_name1 + '_stat.csv', 'r') as f:
