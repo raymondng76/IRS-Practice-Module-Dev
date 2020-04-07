@@ -5,3 +5,6 @@ code/__pycache__/DroneControlAPI.cpython-37.pyc
 code/weights/drone.h5
 code/__pycache__/airsim_env.cpython-36.pyc
 code/__pycache__/config.cpython-36.pyc
+code/Reward_Drone1.png
+code/Reward_Drone2.png
+code/Reward_Drone3.png

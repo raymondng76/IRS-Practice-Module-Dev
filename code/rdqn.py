@@ -1,16 +1,10 @@
-'''
-Author: Sunghoon Hong
-Title: RDQNAgent.py
-Descr
-    Recurrent Deep Q-Network Agent for Airsim,
-Detail:
-    - not use join()
-    - reset for zero-image error
-    - tensorflow v1 + keras
-    - hard update for target model
+# Based on: https://github.com/sunghoonhong/AirsimDRL
+"""
+Date: 1/2/2020
+Team: Kenneth Goh (A0198544N) Raymond Ng (A0198543R) Wong Yoke Keong (A0195365U)
 
-'''
-
+Intelligent Robotic Systems Practice Module
+"""
 
 import os
 import csv
@@ -90,7 +84,6 @@ class RDQNAgent(object):
 
         # state process
         state_process = Concatenate()([image_process, vel_process])
-        # state_process = image_process
 
         # Critic
         Qvalue1 = Dense(128, kernel_initializer='he_normal', use_bias=False)(state_process)
@@ -127,61 +120,38 @@ class RDQNAgent(object):
         action1 = K.placeholder(shape=(None, ), dtype='int32')
         action2 = K.placeholder(shape=(None, ), dtype='int32')
         action3 = K.placeholder(shape=(None, ), dtype='int32')
-        print(f'action1: {action1.shape}')
-        print(f'action2: {action2.shape}')
-        print(f'action3: {action3.shape}')
         y1 = K.placeholder(shape=(None, ), dtype='float32')
         y2 = K.placeholder(shape=(None, ), dtype='float32')
         y3 = K.placeholder(shape=(None, ), dtype='float32')
-        print(f'y1: {y1.shape}')
-        print(f'y2: {y2.shape}')
-        print(f'y3: {y3.shape}')
+
         pred1, pred2, pred3 = self.critic.output
-        print(f'pred1: {pred1.shape}')
-        print(f'pred2: {pred2.shape}')
-        print(f'pred3: {pred3.shape}')
         
         # loss = K.mean(K.square(pred - y))
         # Huber Loss
         action_vec1 = K.one_hot(action1, self.action_size)
         action_vec2 = K.one_hot(action2, self.action_size)
         action_vec3 = K.one_hot(action3, self.action_size)
-        print(f'action_vec1: {action_vec1.shape}')
-        print(f'action_vec2: {action_vec2.shape}')
-        print(f'action_vec3: {action_vec3.shape}')
+
         Q1 = K.sum(pred1 * action_vec1, axis=1)
         Q2 = K.sum(pred2 * action_vec2, axis=1)
         Q3 = K.sum(pred3 * action_vec3, axis=1)
-        print(f'Q1: {Q1}')
-        print(f'Q2: {Q2}')
-        print(f'Q3: {Q3}')
+
         error1 = K.abs(y1 - Q1)
         error2 = K.abs(y2 - Q2)
         error3 = K.abs(y3 - Q3)
-        # error = K.mean(error1, error2, error3)
-        print(f'Error1: {error1}')
-        print(f'Error2: {error2}')
-        print(f'Error3: {error3}')
 
         quadratic1 = K.clip(error1, 0.0, 1.0)
         quadratic2 = K.clip(error2, 0.0, 1.0)
         quadratic3 = K.clip(error3, 0.0, 1.0)
-        print(f'Quad1: {quadratic1}')
-        print(f'Quad2: {quadratic2}')
-        print(f'Quad3: {quadratic3}')
 
         linear1 = error1 - quadratic1
         linear2 = error2 - quadratic2
         linear3 = error3 - quadratic3
-        print(f'Linear1: {linear1}')
-        print(f'Linear2: {linear2}')
-        print(f'Linear3: {linear3}')
+
         preloss1 = K.mean(0.5 * K.square(quadratic1) + linear1)
         preloss2 = K.mean(0.5 * K.square(quadratic2) + linear2)
         preloss3 = K.mean(0.5 * K.square(quadratic3) + linear3)
-        print(f'preloss1: {preloss1}')
-        print(f'preloss2: {preloss2}')
-        print(f'preloss3: {preloss3}')
+
         concatpreloss = tf.stack([preloss1, preloss2, preloss3], axis=0)
         loss = K.mean(concatpreloss)
 
@@ -196,7 +166,6 @@ class RDQNAgent(object):
 
     def get_action(self, state):
         Qs1, Qs2, Qs3 = self.critic.predict(state)
-        # print(f'Qs1:{Qs1}, Qs2:{Qs2}, Qs3:{Qs3}')
         Qmax1 = np.amax(Qs1)
         Qmax2 = np.amax(Qs2)
         Qmax3 = np.amax(Qs3)
@@ -223,7 +192,6 @@ class RDQNAgent(object):
         dones = np.zeros((self.batch_size))
 
         targets = np.zeros((self.batch_size, 1))
-        print(f'batch_size: {self.batch_size}')
         for i, sample in enumerate(batch):
             images[i], vels[i] = sample[0]
             actions1[i] = sample[1]
@@ -238,7 +206,6 @@ class RDQNAgent(object):
         targets1 = rewards + self.gamma * (1 - dones) * np.amax(target_next_Qs[0], axis=1)
         targets2 = rewards + self.gamma * (1 - dones) * np.amax(target_next_Qs[1], axis=1)
         targets3 = rewards + self.gamma * (1 - dones) * np.amax(target_next_Qs[2], axis=1)
-        # targets = [targets1, targets2, targets3]
         critic_loss = self.critic_update(states + [actions1, actions2, actions3, targets1, targets2, targets3])
         return critic_loss[0]
 
@@ -256,31 +223,26 @@ class RDQNAgent(object):
     def update_target_model(self):
         self.target_critic.set_weights(self.critic.get_weights())
 
-
 '''
 Environment interaction
 '''
 
 def transform_input(responses, img_height, img_width):
-    # img1d = np.array(responses[0].image_data_float, dtype=np.float)
-    # img1d = np.array(np.clip(255 * 3 * img1d, 0, 255), dtype=np.uint8)
-    # img2d = np.reshape(img1d, (responses[0].height, responses[0].width))
-    # image = Image.fromarray(img2d)
-    # image = np.array(image.resize((img_width, img_height)).convert('L'))
-    # cv2.imwrite('view.png', image)
-    # image = np.float32(image.reshape(1, img_height, img_width, 1))
-    # image /= 255.0
-    # return image
     d1img = np.array(cv2.cvtColor(responses[0][:,:,:3], cv2.COLOR_BGR2GRAY))
     d2img = np.array(cv2.cvtColor(responses[1][:,:,:3], cv2.COLOR_BGR2GRAY))
     d3img = np.array(cv2.cvtColor(responses[2][:,:,:3], cv2.COLOR_BGR2GRAY))
-    dimg = np.array([d1img, d2img, d3img])
+    d1norm = np.zeros((img_height, img_width))
+    d2norm = np.zeros((img_height, img_width))
+    d3norm = np.zeros((img_height, img_width))
+    d1norm = cv2.normalize(d1img, d1norm, 0, 255, cv2.NORM_MINMAX)
+    d2norm = cv2.normalize(d2img, d2norm, 0, 255, cv2.NORM_MINMAX)
+    d3norm = cv2.normalize(d3img, d3norm, 0, 255, cv2.NORM_MINMAX)
+    dimg = np.array([d1norm, d2norm, d3norm])
     image = dimg.reshape(1, img_height, img_width, 3)
-    print(f'Drone image shape: {image.shape}')
     return image
 
 def interpret_action(action):
-    scaling_factor = 0.25
+    scaling_factor = 0.1
     if action == 0:
         quad_offset = (0, 0, 0)
     elif action == 1:
@@ -300,8 +262,8 @@ def interpret_action(action):
 
 if __name__ == '__main__':
     # CUDA config
-    # tf_config = tf.ConfigProto()
-    # tf_config.gpu_options.allow_growth = True
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
 
     # argument parser
     parser = argparse.ArgumentParser()
@@ -313,11 +275,10 @@ if __name__ == '__main__':
     parser.add_argument('--lr',         type=float, default=1e-4)
     parser.add_argument('--gamma',      type=float, default=0.99)
     parser.add_argument('--seqsize',    type=int,   default=5)
-    parser.add_argument('--epoch',      type=int,   default=5)
-    parser.add_argument('--batch_size', type=int,   default=5)
+    parser.add_argument('--epoch',      type=int,   default=1)
+    parser.add_argument('--batch_size', type=int,   default=32)
     parser.add_argument('--memory_size',type=int,   default=50000)
-    parser.add_argument('--train_start',type=int,   default=3000)
-    # parser.add_argument('--train_start',type=int,   default=10)
+    parser.add_argument('--train_start',type=int,   default=5000)
     parser.add_argument('--train_rate', type=int,   default=5)
     parser.add_argument('--target_rate',type=int,   default=1000)
     parser.add_argument('--epsilon',    type=float, default=1)
@@ -361,8 +322,9 @@ if __name__ == '__main__':
                 bestY, timestep, score, avgQ = 0., 0, 0., 0.
                 observe = env.reset()
                 image, vel = observe
+                vel = np.array(vel)
                 try:
-                    image = transform_input(image, args.img_height, args.img_width) #TODO
+                    image = transform_input(image, args.img_height, args.img_width)
                 except:
                     continue
                 history = np.stack([image] * args.seqsize, axis=1)
@@ -370,36 +332,37 @@ if __name__ == '__main__':
                 state = [history, vel]
                 while not done:
                     timestep += 1
-                    # snapshot = np.zeros([0, args.img_width, 1])
-                    # for snap in state[0][0]:
-                    #     snapshot = np.append(snapshot, snap, axis=0)
-                    # snapshot *= 128
-                    # snapshot += 128
-                    # cv2.imshow('%s' % timestep, np.uint8(snapshot))
-                    # cv2.waitKey(0)
-                    Qs = agent.critic.predict(state)[0]
-                    action = np.argmax(Qs)
-                    Qmax = np.amax(Qs)
-                    real_action = interpret_action(action)
-                    observe, reward, done, info = env.step(real_action)
+                    
+                    Qs1, Qs2, Qs3 = agent.critic.predict(state)
+                    action1, action2, action3 = np.argmax(Qs1), np.argmax(Qs2), np.argmax(Qs3)
+                    Qmax1, Qmax2, Qmax3 = np.amax(Qs1), np.amax(Qs2), np.amax(Qs3)
+                    real_action1, real_action2, real_action3 = interpret_action(action1), interpret_action(action2), interpret_action(action3)
+                    observe, reward, done, info = env.step([real_action1, real_action2, real_action3])
                     image, vel = observe
+                    vel = np.array(vel)
                     try:
                         image = transform_input(image, args.img_height, args.img_width)
                     except:
+                        print('BUG')
                         bug = True
                         break
                     history = np.append(history[:, 1:], [image], axis=1)
                     vel = vel.reshape(1, -1)
                     next_state = [history, vel]
+                    reward = np.sum(np.array(reward))
+                    info1, info2, info3 = info[0]['status'], info[1]['status'], info[2]['status']
+
                     # stats
-                    avgQ += float(Qmax)
-                    score += reward
-                    if info['Y'] > bestY:
-                        bestY = info['Y']
-                    print('%s' % (ACTION[action]), end='\r', flush=True)
+                    avgQ += float(Qmax1 + Qmax2 + Qmax3)
+                    score += float(reward)
+                    if timestep > bestY:
+                        bestY = timestep
+                    print('%s' % (ACTION[action1]), end='\r', flush=True)
+                    print('%s' % (ACTION[action2]), end='\r', flush=True)
+                    print('%s' % (ACTION[action3]), end='\r', flush=True)
 
                     if args.verbose:
-                        print('Step %d Action %s Reward %.2f Info %s:' % (timestep, real_action, reward, info['status']))
+                        print('Step %d Action1 %s Action2 %s Action3 %s Reward %.2f Info1 %s Info2 %s Info3 %s:' % (timestep, real_action1, real_action2, real_action3, reward, info1, info2, info3))
 
                     state = next_state
 
@@ -409,8 +372,8 @@ if __name__ == '__main__':
                 avgQ /= timestep
 
                 # done
-                print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f Info %s'
-                        % (episode, bestY, timestep, score, avgQ, info['status']))
+                print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f Info1 %s Info2 %s Info3 %s'
+                        % (episode, bestY, timestep, score, avgQ, info1, info2, info3))
 
                 episode += 1
             except KeyboardInterrupt:
@@ -418,8 +381,8 @@ if __name__ == '__main__':
                 break
     else:
         # Train
-        time_limit = 10
-        highscoreY = 0.
+        time_limit = 9999999
+        highscoreY = -9999999999.
         if os.path.exists('save_stat/'+ agent_name + '_stat.csv'):
             with open('save_stat/'+ agent_name + '_stat.csv', 'r') as f:
                 read = csv.reader(f)
@@ -452,13 +415,13 @@ if __name__ == '__main__':
                 history = np.stack([image] * args.seqsize, axis=1)                
                 vel = vel.reshape(1, -1)
                 state = [history, vel]
-                print(f'done: {done}, timestep: {timestep}, time_limit: {time_limit}')
+                print(f'Main Loop: done: {done}, timestep: {timestep}, time_limit: {time_limit}')
                 while not done and timestep < time_limit:
+                    print(f'Sub Loop: timestep: {timestep}, global_step: {global_step}')
                     timestep += 1
                     global_step += 1
-                    print(args.epoch)
                     if len(agent.memory) >= args.train_start and global_step >= args.train_rate:
-                        print(f'train start loop')
+                        print('Updating model')
                         for _ in range(args.epoch):
                             c_loss = agent.train_model()
                             loss += float(c_loss)
@@ -466,29 +429,20 @@ if __name__ == '__main__':
                             global_train_num += 1
                         global_step = 0
                     if global_train_num >= args.target_rate:
-                        print(f'train start loop2')
                         agent.update_target_model()
                         global_train_num = 0
 
                     (action1, policy1, Qmax1), (action2, policy2, Qmax2), (action3, policy3, Qmax3) = agent.get_action(state)
-                    real_action1 = interpret_action(action1)
-                    real_action2 = interpret_action(action2)
-                    real_action3 = interpret_action(action3)
+                    real_action1, real_action2, real_action3 = interpret_action(action1), interpret_action(action2), interpret_action(action3)
                     observe, reward, done, info = env.step([real_action1,real_action2,real_action3])
                     image, vel = observe
                     vel = np.array(vel)
-                    info1 = info[0]['status']
-                    info2 = info[1]['status']
-                    info3 = info[2]['status']
-                    print(f'info1: {info1}')
-                    print(f'info2: {info2}')
-                    print(f'info3: {info3}')
+                    info1, info2, info3 = info[0]['status'], info[1]['status'], info[2]['status']
 
                     try:
                         if timestep < 3 and info[0]['status'] == 'landed' and info[1]['status'] == 'landed' and info[2]['status'] == 'landed':
                             raise Exception
                         image = transform_input(image, args.img_height, args.img_width)
-                        print(f'image.shape: {image.shape}')
                     except:
                         print('BUG')
                         bug = True
@@ -498,18 +452,19 @@ if __name__ == '__main__':
                     next_state = [history, vel]
                     reward = np.sum(np.array(reward))
                     agent.append_memory(state, action1, action2, action3, reward, next_state, done)
-                    print(f'reward: {reward}')
+
                     # stats
                     avgQ += float(Qmax1 + Qmax2 + Qmax3)
                     score += float(reward)
-                    # if info['Y'] > bestY:
-                    #     bestY = info['Y']
+                    if float(reward) > bestY:
+                        bestY = float(reward)
 
                     print('%s | %s' % (ACTION[action1], ACTION[policy1]), end='\r', flush=True)
-
+                    print('%s | %s' % (ACTION[action2], ACTION[policy2]), end='\r', flush=True)
+                    print('%s | %s' % (ACTION[action3], ACTION[policy3]), end='\r', flush=True)
 
                     if args.verbose:
-                        print('Step %d Action %s Reward %.2f Info %s:' % (timestep, real_action, reward, info['status']))
+                        print('Step %d Action1 %s Action2 %s Action3 %s Reward %.2f Info1 %s Info2 %s Info3 %s:' % (timestep, real_action1, real_action2, real_action3, reward, info1, info2, info3))
 
                     state = next_state
 
@@ -526,20 +481,20 @@ if __name__ == '__main__':
                 if args.verbose or episode % 10 == 0:
                     print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f'
                             % (episode, bestY, timestep, score, avgQ))
-                # stats = [
-                #     episode, timestep, score, bestY, \
-                #     loss, info['level'], avgQ, info['status']
-                # ]
+                stats = [
+                    episode, timestep, score, bestY, \
+                    loss, info[0]['level'], info[1]['level'], info[2]['level'], avgQ, info[0]['status'], info[1]['status'], info[2]['status']
+                ]
                 # log stats
-                # with open('save_stat/'+ agent_name + '_stat.csv', 'a', encoding='utf-8', newline='') as f:
-                #     wr = csv.writer(f)
-                #     wr.writerow(['%.4f' % s if type(s) is float else s for s in stats])
-                # if highscoreY < bestY:
-                #     highscoreY = bestY
-                #     with open('save_stat/'+ agent_name + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
-                #         wr = csv.writer(f)
-                #         wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
-                #     agent.save_model('./save_model/'+ agent_name + '_best')
+                with open('save_stat/'+ agent_name + '_stat.csv', 'a', encoding='utf-8', newline='') as f:
+                    wr = csv.writer(f)
+                    wr.writerow(['%.4f' % s if type(s) is float else s for s in stats])
+                if highscoreY < score:
+                    highscoreY = score
+                    with open('save_stat/'+ agent_name + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
+                        wr = csv.writer(f)
+                        wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
+                    agent.save_model('./save_model/'+ agent_name + '_best')
                 agent.save_model('./save_model/'+ agent_name)
                 episode += 1
             except KeyboardInterrupt:
