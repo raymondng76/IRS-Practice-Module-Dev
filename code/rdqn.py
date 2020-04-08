@@ -421,6 +421,7 @@ if __name__ == '__main__':
                     timestep += 1
                     global_step += 1
                     if len(agent.memory) >= args.train_start and global_step >= args.train_rate:
+                        print('Updating model')
                         for _ in range(args.epoch):
                             c_loss = agent.train_model()
                             loss += float(c_loss)

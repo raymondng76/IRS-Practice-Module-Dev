@@ -2,7 +2,6 @@
 """
 Date: 1/2/2020
 Team: Kenneth Goh (A0198544N) Raymond Ng (A0198543R) Wong Yoke Keong (A0195365U)
-
 Intelligent Robotic Systems Practice Module
 """
 import time
@@ -14,7 +13,7 @@ from pathlib import Path
 from DroneControlAPI import DroneControl
 from yolov3_inference import *
 from geopy import distance
-import os
+
 
 clockspeed = 1
 timeslice = 0.5 / clockspeed
@@ -27,13 +26,12 @@ ACTION = ['00', '+x', '+y', '+z', '-x', '-y', '-z']
 targetdrone_espsilon = 0.35
 
 droneList = ['Drone1', 'Drone2', 'Drone3', 'DroneTarget']
-dir = os.path.abspath(os.getcwd())
-yolo_weights = os.path.join(dir, 'weights\\drone.h5')
-#print(yolo_weights)
-# base_dir = Path(__file__)
 # base_dir = Path('..')
 # yolo_weights = base_dir/'weights'/'drone.h5'
-# yolo_weights = '..\weights\drone.h5'
+
+import os
+dir = os.path.abspath(os.getcwd())
+yolo_weights = os.path.join(dir, 'weights\\drone.h5')
 
 class Env:
     def __init__(self):
@@ -87,10 +85,6 @@ class Env:
             gps_dist.append(distance.distance(source, target).m)
 
         observation = [responses, gps_dist]
-        height = responses[0].shape[0]
-        width = responses[0].shape[1]
-        channels = responses[0].shape[2]
-        print(f"the height is {height}, the width is {width}, the no. of channels is {channels}")
         return observation
 
     def step(self, quad_offset_list):
