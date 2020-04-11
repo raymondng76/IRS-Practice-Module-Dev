@@ -270,7 +270,14 @@ def transform_input(responses, img_height, img_width):
 
 def transform_action(action):
     real_action = np.array(action)
-    real_action[1] += 0.5
+    real_action /= 10 # Scale down due to camera FOV limitation
+    real_action[0] += 0.1 if np.random.rand() > 0.5 else -0.1 # At each time step randomise to move left or right
+    real_action[1] += 0.1 if np.random.rand() > 0.5 else -0.1 # At each time step randomise to move front or back
+    return real_action
+
+def transform_action_forplay(action):
+    real_action = np.array(action)
+    real_action /= 10
     return real_action
 
 if __name__ == '__main__':
@@ -293,7 +300,7 @@ if __name__ == '__main__':
     parser.add_argument('--seqsize',    type=int,   default=5)
     parser.add_argument('--epoch',      type=int,   default=1)
     parser.add_argument('--batch_size', type=int,   default=64)
-    parser.add_argument('--memory_size',type=int,   default=50000)
+    parser.add_argument('--memory_size',type=int,   default=10000)
     parser.add_argument('--train_start',type=int,   default=1000)
     parser.add_argument('--train_rate', type=int,   default=4)
     parser.add_argument('--epsilon',    type=float, default=1)
