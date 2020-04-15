@@ -360,7 +360,7 @@ if __name__ == '__main__':
                     next_state1 = [history1, vel1]
                     next_state2 = [history2, vel2]
                     next_state3 = [history3, vel3]
-
+                    reward = np.sum(np.array(reward))
                     # stats
                     totalQmax = Qmax1 + Qmax2 + Qmax3
                     avgQ += float(totalQmax)
