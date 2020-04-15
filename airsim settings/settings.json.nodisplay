@@ -1,0 +1,81 @@
+{
+  "SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
+  "SettingsVersion": 1.2,
+  "ClockSpeed": 1,
+  "ViewMode": "NoDisplay",
+  "SimMode": "Multirotor",
+  "CameraDefaults": {
+	"CaptureSettings": [
+	{
+		"Width": 352,
+		"Height": 224,
+		"FOV_Degrees": 50
+	}
+    ]
+  },
+  "SubWindows": [
+    {"WindowID": 0, "CameraName": "0", "ImageType": 3, "Visible": false},
+    {"WindowID": 1, "CameraName": "0", "ImageType": 5, "Visible": false},
+    {"WindowID": 2, "CameraName": "0", "ImageType": 0, "Visible": true}
+  ],
+  "Vehicles": {
+	"Drone1": {
+		"VehicleType": "SimpleFlight",
+		"X": -4.6188, "Y": 0, "Z": -2,
+		
+		"Sensors": {
+			"Gps1": {
+				"SensorType": 3,
+				"Enabled": true
+			},
+			"Distance1": {
+				"SensorType": 5,
+				"Enabled": true
+			}
+		}
+
+	},
+	"Drone2": {
+		"VehicleType": "SimpleFlight",
+		"X": 2.309, "Y": 4, "Z": -2,
+		"Sensors": {
+			"Gps1": {
+				"SensorType": 3,
+				"Enabled": true
+			},
+			"Distance1": {
+				"SensorType": 5,
+				"Enabled": true
+			}
+		}
+	},
+	"Drone3": {
+		"VehicleType": "SimpleFlight",
+		"X": 2.309, "Y": -4, "Z": -2,
+		"Sensors": {
+			"Gps1": {
+				"SensorType": 3,
+				"Enabled": true
+			},
+			"Distance1": {
+				"SensorType": 5,
+				"Enabled": true
+			}
+		}
+	},
+	"DroneTarget": {
+		"VehicleType": "SimpleFlight",
+		"X": 0, "Y": 0, "Z": -2,
+		"Sensors": {
+			"Gps1": {
+				"SensorType": 3,
+				"Enabled": true
+			},
+			"Distance1": {
+				"SensorType": 5,
+				"Enabled": true
+			}
+		}
+	}
+  }
+}

@@ -111,7 +111,6 @@ class Env:
             else:
                 self.dc.moveDrone(droneList[3], [0,-0.1,0], 2 * timeslice)
         # self.dc.moveDrone(droneList[3], [0.1,0,0], 2 * timeslice)
-        
         # All follower drones take next move
         has_collided = [False, False, False]
         landed = [False, False, False]
