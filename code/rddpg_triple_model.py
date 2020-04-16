@@ -386,49 +386,92 @@ if __name__ == '__main__':
 
                 observe = env.reset()
                 image, vel = observe
+                vel = np.array(vel)
                 try:
-                    image = transform_input(image, args.img_height, args.img_width)
+                    image1 = transform_input(image[0], args.img_height, args.img_width)
+                    image2 = transform_input(image[1], args.img_height, args.img_width)
+                    image3 = transform_input(image[2], args.img_height, args.img_width)
                 except:
+                    print('BUG')
                     continue
-                history = np.stack([image] * args.seqsize, axis=1)
-                vel = vel.reshape(1, -1)
-                state = [history, vel]
+                history1 = np.stack([image1] * args.seqsize, axis=1)
+                history2 = np.stack([image2] * args.seqsize, axis=1)
+                history3 = np.stack([image3] * args.seqsize, axis=1)
+
+                vel1 = vel[0].reshape(1, -1)
+                vel2 = vel[1].reshape(1, -1)
+                vel3 = vel[2].reshape(1, -1)
+
+                state1 = [history1, vel1]
+                state2 = [history2, vel2]
+                state3 = [history3, vel3]
+
                 while not done:
                     timestep += 1
-                    # snapshot = np.zeros([0, args.img_width, 1])
-                    # for snap in state[0][0]:
-                    #     snapshot = np.append(snapshot, snap, axis=0)
-                    # snapshot *= 128
-                    # snapshot += 128
-                    # cv2.imshow('%s' % timestep, np.uint8(snapshot))
-                    # cv2.waitKey(0)
-                    action = agent.actor.predict(state)[0]
+                    
+                    action1 = agent1.actor.predict(state1)[0]
+                    action2 = agent2.actor.predict(state2)[0]
+                    action3 = agent3.actor.predict(state3)[0]
+
                     noise = [np.random.normal(scale=args.epsilon) for _ in range(action_size)]
                     noise = np.array(noise, dtype=np.float32)
-                    action = np.clip(action + noise, -1, 1)
-                    real_action = transform_action(action)
-                    observe, reward, done, info = env.step(transform_action(real_action))
+
+                    action1 = np.clip(action1 + noise, -1, 1)
+                    action2 = np.clip(action2 + noise, -1, 1)
+                    action3 = np.clip(action3 + noise, -1, 1)
+                    
+                    real_action1 = transform_action(action1)
+                    real_action2 = transform_action(action2)
+                    real_action3 = transform_action(action3)
+                    
+                    observe, reward, done, info = env.step(transform_action([real_action1, real_action2, real_action3]))
                     image, vel = observe
+                    vel = np.array(vel)
                     try:
-                        image = transform_input(image, args.img_height, args.img_width)
+                        image1 = transform_input(image[0], args.img_height, args.img_width)
+                        image2 = transform_input(image[1], args.img_height, args.img_width)
+                        image3 = transform_input(image[2], args.img_height, args.img_width)
                     except:
+                        print('BUG')
                         bug = True
                         break
-                    history = np.append(history[:, 1:], [image], axis=1)
-                    vel = vel.reshape(1, -1)
-                    next_state = [history, vel]
+
+                    history1 = np.append(history1[:, 1:], [image], axis=1)
+                    history2 = np.append(history2[:, 1:], [image], axis=1)
+                    history3 = np.append(history3[:, 1:], [image], axis=1)
+
+                    vel1 = vel[0].reshape(1, -1)
+                    vel2 = vel[1].reshape(1, -1)
+                    vel3 = vel[2].reshape(1, -1)
+
+                    next_state1 = [history1, vel1]
+                    next_state2 = [history2, vel2]
+                    next_state3 = [history3, vel3]
+
                     # stats
-                    avgQ += float(agent.critic.predict([state[0], state[1], action.reshape(1, -1)])[0][0])
-                    avgvel += float(np.linalg.norm(real_action))
+                    avgQ += float(agent1.critic.predict([state1[0], state1[1], action1.reshape(1, -1)])[0][0])
+                    avgQ += float(agent2.critic.predict([state2[0], state2[1], action2.reshape(1, -1)])[0][0])
+                    avgQ += float(agent3.critic.predict([state3[0], state3[1], action3.reshape(1, -1)])[0][0])
+                    avgQ /= 3
+
+                    avgvel += float(np.linalg.norm(real_action1))
+                    avgvel += float(np.linalg.norm(real_action2))
+                    avgvel += float(np.linalg.norm(real_action3))
+                    avgvel /= 3
+
                     score += reward
-                    if info['Y'] > bestY:
-                        bestY = info['Y']
-                    print('%s' % (real_action), end='\r', flush=True)
+                    if float(reward) > bestY:
+                        bestY = float(reward)
+                    print('%s' % (real_action1), end='\r', flush=True)
+                    print('%s' % (real_action2), end='\r', flush=True)
+                    print('%s' % (real_action3), end='\r', flush=True)
 
                     if args.verbose:
-                        print('Step %d Action %s Reward %.2f Info %s:' % (timestep, real_action, reward, info['status']))
+                        print('Step %d Action1 %s Action2 %s Action3 %s Reward %.2f Info1 %s Info2 %s Info3 %s:' % (timestep, real_action1, real_action2, real_action3, reward, info[0]['status'], info[1]['status'], info[2]['status']))
 
-                    state = next_state
+                    state1 = next_state1
+                    state2 = next_state2
+                    state3 = next_state3
 
                 if bug:
                     continue
