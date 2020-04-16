@@ -1,4 +1,4 @@
-# Simplified instructions for running airsim environment with Docker
+# Simplified instructions for running airsim environment with Docker locally
 
 Modified from reference [Microsoft AirSim repository docker readme](https://github.com/microsoft/AirSim/blob/master/docs/docker_ubuntu.md)
 
@@ -13,12 +13,6 @@ pip install airsim
 2. Clone AirSim repo 
 ```
 git clone https://github.com/microsoft/AirSim.git
-cd AirSim/docker
-```
-3. Edit build_airsim_image.py to update script for python 3
-- `nano build_airsim_image.py` or `vim build_airsim_image.py`
-- Change `print " ".join(docker_command)` to `print(" ".join(docker_command))`
-- Save file
 
 4. Install nvidia-docker 2.0 per instructions [here](https://github.com/NVIDIA/nvidia-docker/wiki/Installation-(version-2.0))
 
