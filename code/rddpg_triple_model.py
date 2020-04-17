@@ -436,9 +436,9 @@ if __name__ == '__main__':
                         bug = True
                         break
 
-                    history1 = np.append(history1[:, 1:], [image], axis=1)
-                    history2 = np.append(history2[:, 1:], [image], axis=1)
-                    history3 = np.append(history3[:, 1:], [image], axis=1)
+                    history1 = np.append(history1[:, 1:], [image1], axis=1)
+                    history2 = np.append(history2[:, 1:], [image2], axis=1)
+                    history3 = np.append(history3[:, 1:], [image3], axis=1)
 
                     vel1 = vel[0].reshape(1, -1)
                     vel2 = vel[1].reshape(1, -1)
@@ -458,7 +458,7 @@ if __name__ == '__main__':
                     avgvel += float(np.linalg.norm(real_action2))
                     avgvel += float(np.linalg.norm(real_action3))
                     avgvel /= 3
-
+                    reward = np.sum(np.array(reward))
                     score += reward
                     if float(reward) > bestY:
                         bestY = float(reward)
