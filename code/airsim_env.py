@@ -174,14 +174,29 @@ class Env:
 
         # decide whether done
         done = False
+        img_reward = {}
         for droneidx in range(len(droneList[:-1])):
-            dead = has_collided[droneidx] or self.gps_out_bounds(gps_dist)
-            if dead:
-                done = True
+            img = responses[droneidx]
+            try:
+                bbox = self.infer_model.get_yolo_boxes(img[:,:,:3])
+                img_status = self.calculate_bbox_zone(bbox, img)
+                img_reward[droneidx] = img_status
+            except:
+                bbox = BoundBox(xmin=0, xmax=0, ymin=0, ymax=0)
+                img_status = 'dead'
+                img_reward[droneidx] = img_status
+            print(f'Drone[{droneidx}] is [{img_status}]')
+            test_img = cv2.cvtColor(img.copy(), cv2.COLOR_BGR2RGB)
+            cv2.rectangle(test_img, (bbox.xmin, bbox.ymin), (bbox.xmax, bbox.ymax), (0,0,255), 2)
+            cv2.imwrite(f'Reward_{droneList[droneidx]}.png', test_img)
+
+        done = has_collided[droneidx] or self.gps_out_bounds(gps_dist) or any(status == 'dead' for status in img_reward.values())
+        # if dead:
+        #     done = True
             # print(f'Drone{droneidx}: dead? {dead}')
 
         # compute reward
-        reward = self.compute_reward(responses, gps_dist, done)
+        reward = self.compute_reward(responses, gps_dist, img_reward, done)
 
         # log info
         loginfo = []
@@ -216,22 +231,20 @@ class Env:
                 break
         return stats
 
-    def compute_reward(self, responses, gps_dist, dead):
+    def compute_reward(self, responses, gps_dist, image_reward, dead):
         reward = [None] * len(droneList[:-1])
         for droneidx in range(len(droneList[:-1])):
             # Calculate image rewards
             img = responses[droneidx]
-            try:
-                bbox = self.infer_model.get_yolo_boxes(img[:,:,:3])
-                img_status = self.calculate_bbox_zone(bbox, img)
-            except:
-                bbox = BoundBox(xmin=0, xmax=0, ymin=0, ymax=0)
-                img_status = 'dead'            
-
+            # try:
+            #     bbox = self.infer_model.get_yolo_boxes(img[:,:,:3])
+            #     img_status = self.calculate_bbox_zone(bbox, img)
+            # except:
+            #     bbox = BoundBox(xmin=0, xmax=0, ymin=0, ymax=0)
+            #     img_status = 'dead'            
+            img_status = image_reward[droneidx]
             # Save image for visual processing
-            test_img = cv2.cvtColor(img.copy(), cv2.COLOR_BGR2RGB)
-            cv2.rectangle(test_img, (bbox.xmin, bbox.ymin), (bbox.xmax, bbox.ymax), (0,0,255), 2)
-            cv2.imwrite(f'Reward_{droneList[droneidx]}.png', test_img)
+            
 
             if dead or img_status == 'dead':
                 reward[droneidx] = config.reward['dead']

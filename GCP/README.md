@@ -44,6 +44,7 @@ gcloud compute instances create $INSTANCE_NAME \
     - `mv AirSim/docker/settings.json.nodisplay AirSim/docker/settings.json`
 
 ## 3. Build and run AirSim docker
+- Create new session named code: `tmux new-session -A -s airsimenv`
 - `cd AirSim/docker`
 - Execute Build Script, targeting Ubuntu18.04 and CUDA 10.1:
 ```
@@ -52,10 +53,12 @@ python build_airsim_image.py \
    --target_image=airsim_binary:10.1-devel-ubuntu18.04
 ```
 - Verify docker image built: `docker images | grep airsim`
-- Get packaged Neighborhood AirSim Unreal Environment: `wget https://github.com/microsoft/AirSim/releases/download/v1.2.0Linux/Neighborhood.zip`
+- To use the default Blocks environment run: `./download_blocks_env_binary.sh`
+- To use a packaged AirSim Unreal Environment, for example Neighborhood: `wget https://github.com/microsoft/AirSim/releases/download/v1.2.0Linux/Neighborhood.zip`
+  - For additional environment that can run on Linux, go to [release 1.2.0 linux](https://github.com/microsoft/AirSim/releases/tag/v1.2.0Linux)
 - Unzip to AirSim docker dir `unzip Neighborhood.zip -d .`
-- Run environment in headless mode: `./run_airsim_image_binary.sh airsim_binary:10.1-devel-ubuntu18.04 Neighborhood/AirSimNH.sh -windowed -ResX=1080 -ResY=720 -- headless`
-- Note: in `settings.json` file, no-display mode has also been setup
+- Run environment in headless mode: `./run_airsim_image_binary.sh airsim_binary:10.1-devel-ubuntu18.04 Neighborhood/AirSimNH.sh -windowed -ResX=1080 -ResY=720 -- headless`. Replace the environment bash file as required.
+- Note: in `settings.json` file, no-display mode has also been setup to conserve resources.
 - Detach tmux session: `ctrl-b ctrl-b d`
 
 ## 4. Run model training file
@@ -71,15 +74,19 @@ python build_airsim_image.py \
     - `cd ..`
 - Execute required model training file in IRS-Practice-Module-Dev/code folder
     - `cd code`
-    - `python <model>.py`
+    - `python <model>.py --verbose`
 - Detach tmux session: `ctrl-b ctrl-b d`
 - You can close cloud shell and let training to continue
+- OPTIONAL: Stackdriver monitoring is recommended to be set up for CPU utilization to ensure that any stop in training can be detected. A threshold of < 40% for 5min is recommended. More information can be found in [codelabs](https://codelabs.developers.google.com/codelabs/cloud-monitoring-codelab/index.html?index=..%2F..index#0) or the [documentation](https://cloud.google.com/monitoring/quickstart-lamp)
 
 ## 5. Login to view progress
 - Login to VM with user as jupyter from Cloud Shell `gcloud compute ssh --zone=us-west1-b jupyter@drml`
 - View code progress or airsim output by typing tmux attach -t <SESSION> where SESSION can be `airsimenv` or `code`
 
-## 6. Download RL model weights
+## 6. Resuming model training
+- If for some reason (e.g. unexpected errors or VM restart) you need to resume training, use the following command `python <model>.py --verbose --load_model`
+
+## 7. Download RL model weights
 - Install croc ([Github Ref](https://github.com/schollz/croc)): `curl https://getcroc.schollz.com | bash`
 - From VM home folder, execute `croc send IRS-Practice-Module-Dev/code/save_model/<model>.h5` for required model
 - Note the passcode output from previous line and execute command on local: `croc -yes <passcode>`
