@@ -94,4 +94,4 @@ python build_airsim_image.py \
 ## Acknowledgements and References
 
 - [fastai GCP setup](https://course.fast.ai/start_gcp.html)
-- [Github or Croc](https://github.com/schollz/croc)
+- [Croc Github](https://github.com/schollz/croc)

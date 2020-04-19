@@ -9,7 +9,7 @@
 
 Today, more than 50% of News Agencies have Drones Team that performs the coverage of ‘live’ events. Typically these events do not have the luxury of having retakes, hence multiple drones are required for taking multiple vantage points at the same time. A large amount of expertise and coordination required and thus there is a need for Autonomous Flight Formation for multiple drones that can assist the human operators.
 
-This project sets out to explore Reinforcement Learning based approaches to solve Real-time online inference drone flight in formation while tracking target using Camera and GPS sensors. Through the use of calibrated setup of a single target drone with multiple follower drones, the team explores the the effectiveness of Single Multi-Inputs Agent Reinforcement Learning vs Multiple Single-Input Agents Reinforcement Learning. The team demonstrated the results of the models trained in a pre-recorded simulation videoand then presented their findings and observations in the accompanied report.
+This project sets out to explore Reinforcement Learning based approaches to solve Real-time online inference drone flight in formation while tracking target using Camera and GPS sensors. Through the use of calibrated setup of a single target drone with multiple follower drones, the team explores the the effectiveness of Single Multi-Inputs Agent Reinforcement Learning vs Multiple Single-Input Agents Reinforcement Learning. The team demonstrated the results of the models trained in a pre-recorded simulation video and then presented their findings and observations in the accompanied report.
 
 ---
 ## SECTION 3 : TEAM MEMBERS
