@@ -66,11 +66,12 @@ Members  : Kenneth Goh, Raymond Ng, Wong Yoke Keong
 
 #### Local Training
 1. Ensure the AirSim environment is running
-2. To run the simulations for the selected models, execute `python <model>.py --play --load_model`. Options include
+2. To train the models from scratch, execute `python <model>.py --verbose`. Options include
    - `rdqn.py`
    - `rdqn_triple_model.py`
    - `rddpg_triple_model.py`
-3. To stop the simulation press `Ctrl-c`
+3. To resume training, execute `python <models>.py --verbose --load_model`
+3. To stop the training press `Ctrl-c`
 
 #### Training on Google Cloud Platform
 1. Please refer to [gcp_training_readme.md](gcp_training_readme.md) for details on setup and training on Google Cloud Platform VM
