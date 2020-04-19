@@ -46,8 +46,8 @@ Members  : Kenneth Goh, Raymond Ng, Wong Yoke Keong
 ### (D) Python Environment and Dependencies
 1. Create new conda environment: `conda create -n airsim python=3.6.7`
 2. Switch environment: `conda activate airsim`
-3. Clone the repository
-3. Install dependencies: `pip install -r requirements.txt`
+3. Install dependencies
+   - Using pip: `pip install -r requirements.txt`
 
 ### (E) Loading of Model Weights
 1. Download and copy YOLOv3 model weights to `IRS-Practice-Module-Dev` main directory
@@ -81,6 +81,9 @@ Members  : Kenneth Goh, Raymond Ng, Wong Yoke Keong
 
 ### Project Report
 The project report can be downloaded from the Report folder.
+
+### Simulation Video Demo
+[![Simulation Video Demo](http://img.youtube.com/vi/ZT0SEAQG_U0/0.jpg)](https://www.youtube.com/watch?v=ZT0SEAQG_U0 "Simulation Video Demo")
 
 ---
 ## SECTION 6 : ACKNOWLEDGEMENT AND REFERENCES
