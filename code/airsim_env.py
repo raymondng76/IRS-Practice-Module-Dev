@@ -15,7 +15,6 @@ from DroneControlAPI import DroneControl
 from yolov3_inference import *
 from geopy import distance
 
-
 clockspeed = 1
 timeslice = 0.5 / clockspeed
 goalY = 57
@@ -40,6 +39,9 @@ class Env:
         self.level = 0
 
     def reset(self):
+        '''
+        Method to reset AirSim env to starting position
+        '''
         self.level = 0
         self.dc.resetAndRearm_Drones()
 
@@ -61,6 +63,7 @@ class Env:
         self.dc.client.simSetCameraOrientation('4', airsim.to_quaternion(-30 * math.pi/180,0,62 * math.pi/180), vehicle_name=droneList[1])
         self.dc.client.simSetCameraOrientation('4', airsim.to_quaternion(-30 * math.pi/180,0,-62 * math.pi/180), vehicle_name=droneList[2])
         time.sleep(1)
+
         # Drone1, Drone2, Drone3 take image
         responses = []
         for drone in droneList[:-1]:
@@ -107,7 +110,7 @@ class Env:
                 self.dc.moveDrone(droneList[3], [0,0.1,0], 2 * timeslice)
             else:
                 self.dc.moveDrone(droneList[3], [0,-0.1,0], 2 * timeslice)
-        # self.dc.moveDrone(droneList[3], [0.1,0,0], 2 * timeslice)
+        
         # All follower drones take next move
         has_collided = [False, False, False]
         landed = [False, False, False]
@@ -142,8 +145,10 @@ class Env:
                 if collision_count[droneidx] > 10:
                     has_collided[droneidx] = True
                     break
+
         self.dc.simPause(True)
         time.sleep(1)
+
         # All follower drones take image
         responses = []
         for drone in droneList[:-1]:
@@ -169,8 +174,7 @@ class Env:
             quad_pos[droneidx] = self.dc.getMultirotorState(droneList[droneidx]).kinematics_estimated.position
             quad_vel[droneidx] = self.dc.getMultirotorState(droneList[droneidx]).kinematics_estimated.linear_velocity
 
-        # decide whether done
-        done = False
+        # Get each follower drone image reward
         img_reward = {}
         for droneidx in range(len(droneList[:-1])):
             img = responses[droneidx]
@@ -182,15 +186,17 @@ class Env:
                 bbox = BoundBox(xmin=0, xmax=0, ymin=0, ymax=0)
                 img_status = 'dead'
                 img_reward[droneidx] = img_status
+
             print(f'Drone[{droneidx}] is [{img_status}]')
+
+            # Save each drone image with YOLOv3 bounding box for debugging purposes only
             test_img = cv2.cvtColor(img.copy(), cv2.COLOR_BGR2RGB)
             cv2.rectangle(test_img, (bbox.xmin, bbox.ymin), (bbox.xmax, bbox.ymax), (0,0,255), 2)
             cv2.imwrite(f'Reward_{droneList[droneidx]}.png', test_img)
 
-        done = has_collided[droneidx] or self.gps_out_bounds(gps_dist) or any(status == 'dead' for status in img_reward.values())
-        # if dead:
-        #     done = True
-            # print(f'Drone{droneidx}: dead? {dead}')
+        # decide whether done
+        done = False
+        done = has_collided[droneidx] or self.gps_out_bounds(gps_dist) or any(status == 'dead' for status in img_reward.values())      
 
         # compute reward
         reward = self.compute_reward(responses, gps_dist, img_reward, done)
@@ -205,14 +211,17 @@ class Env:
                 info['status'] = 'landed'
             elif has_collided[droneidx]:
                 info['status'] = 'collision'
-            elif quad_pos[droneidx].y_val <= outY:
-                info['status'] = 'out'
-            elif quad_pos[droneidx].y_val >= goalY:
-                info['status'] = 'goal'
+            elif img_reward[droneidx] == 'normal':
+                info['status'] = 'forward'
+            elif img_reward[droneidx] == 'slow':
+                info['status'] = 'slow'    
+            elif img_reward[droneidx] == 'dead' or self.gps_out_bounds(gps_dist):
+                info['status'] = 'dead'
             else:
                 info['status'] = 'going'
             loginfo.append(info)
             observation = [responses, gps_dist]
+
         # observation = [responses[D1,D2,D3], gps_dist[D1,D2,D3]]
         # reward = [R]
         # done = [D1,D2,D3]
@@ -230,19 +239,11 @@ class Env:
 
     def compute_reward(self, responses, gps_dist, image_reward, dead):
         reward = [None] * len(droneList[:-1])
-        for droneidx in range(len(droneList[:-1])):
-            # Calculate image rewards
+        for droneidx in range(len(droneList[:-1])):           
             img = responses[droneidx]
-            # try:
-            #     bbox = self.infer_model.get_yolo_boxes(img[:,:,:3])
-            #     img_status = self.calculate_bbox_zone(bbox, img)
-            # except:
-            #     bbox = BoundBox(xmin=0, xmax=0, ymin=0, ymax=0)
-            #     img_status = 'dead'            
             img_status = image_reward[droneidx]
-            # Save image for visual processing
             
-
+            # Assign reward value based on status
             if dead or img_status == 'dead':
                 reward[droneidx] = config.reward['dead']
             elif img_status == 'slow':
