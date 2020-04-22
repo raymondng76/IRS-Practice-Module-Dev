@@ -184,7 +184,7 @@ def transform_input(responses, img_height, img_width):
     return image
 
 def interpret_action(action):
-    scaling_factor = 0.1
+    scaling_factor = 0.01
     if action == 0:
         quad_offset = (0, 0, 0)
     elif action == 1:
@@ -393,7 +393,7 @@ if __name__ == '__main__':
                 break
     else:
         # Train
-        time_limit = 9999999
+        time_limit = 999
         highscoreY = -9999999999.
         if os.path.exists('save_stat/'+ agent_name1 + '_stat.csv'):
             with open('save_stat/'+ agent_name1 + '_stat.csv', 'r') as f:

@@ -43,7 +43,7 @@ class YoloPredictor:
         self.infer_model = load_model(model_path)
         self.net_h = 224
         self.net_w = 352
-        self.obj_thresh = 0.5
+        self.obj_thresh = 0.15
         self.nms_thresh = 0.45
         self.anchors = [88,47, 91,36, 92,55, 92,28, 93,69, 93,41, 96,61, 97,81, 97,48]
 
