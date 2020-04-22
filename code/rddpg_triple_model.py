@@ -10,7 +10,13 @@ Detail:
     - soft update for target model
 
 '''
+# Based on: https://github.com/sunghoonhong/AirsimDRL
+"""
+Date: 1/2/2020
+Team: Kenneth Goh (A0198544N) Raymond Ng (A0198543R) Wong Yoke Keong (A0195365U)
 
+Intelligent Robotic Systems Practice Module
+"""
 
 import os
 import csv
@@ -382,7 +388,7 @@ if __name__ == '__main__':
                 bug = False
 
                 # stats
-                bestY, timestep, score, avgvel, avgQ = 0., 0, 0., 0., 0.
+                bestReward, timestep, score, avgvel, avgQ = 0., 0, 0., 0., 0.
 
                 observe = env.reset()
                 image, vel = observe
@@ -460,8 +466,8 @@ if __name__ == '__main__':
                     avgvel /= 3
                     reward = np.sum(np.array(reward))
                     score += reward
-                    if float(reward) > bestY:
-                        bestY = float(reward)
+                    if float(reward) > bestReward:
+                        bestReward = float(reward)
                     print('%s' % (real_action1), end='\r', flush=True)
                     print('%s' % (real_action2), end='\r', flush=True)
                     print('%s' % (real_action3), end='\r', flush=True)
@@ -480,8 +486,8 @@ if __name__ == '__main__':
                 avgvel /= timestep
 
                 # done
-                print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f AvgVel %.2f'
-                        % (episode, bestY, timestep, score, avgQ, avgvel))
+                print('Ep %d: BestReward %.3f Step %d Score %.2f AvgQ %.2f AvgVel %.2f'
+                        % (episode, bestReward, timestep, score, avgQ, avgvel))
 
                 episode += 1
             except KeyboardInterrupt:
@@ -490,7 +496,7 @@ if __name__ == '__main__':
     else:
         # Train
         time_limit = 600
-        highscoreY = -9999999999.
+        highscore = -9999999999.
         if os.path.exists('save_stat/'+ agent_name1 + '_stat.csv'):
             with open('save_stat/'+ agent_name1 + '_stat.csv', 'r') as f:
                 read = csv.reader(f)
@@ -513,18 +519,18 @@ if __name__ == '__main__':
         if os.path.exists('save_stat/'+ agent_name1 + '_highscore.csv'):
             with open('save_stat/'+ agent_name1 + '_highscore.csv', 'r') as f:
                 read = csv.reader(f)
-                highscoreY = float(next(reversed(list(read)))[0])
-                print('Best Y:', highscoreY)
+                highscore = float(next(reversed(list(read)))[0])
+                print('Best Y:', highscore)
         if os.path.exists('save_stat/'+ agent_name2 + '_highscore.csv'):
             with open('save_stat/'+ agent_name2 + '_highscore.csv', 'r') as f:
                 read = csv.reader(f)
-                highscoreY = float(next(reversed(list(read)))[0])
-                print('Best Y:', highscoreY)
+                highscore = float(next(reversed(list(read)))[0])
+                print('Best Y:', highscore)
         if os.path.exists('save_stat/'+ agent_name3 + '_highscore.csv'):
             with open('save_stat/'+ agent_name3 + '_highscore.csv', 'r') as f:
                 read = csv.reader(f)
-                highscoreY = float(next(reversed(list(read)))[0])
-                print('Best Y:', highscoreY)
+                highscore = float(next(reversed(list(read)))[0])
+                print('Best Y:', highscore)
 
         global_step = 0
         while True:
@@ -533,7 +539,7 @@ if __name__ == '__main__':
                 bug = False
 
                 # stats
-                bestY, timestep, score, avgvel, avgQ, avgAct = 0., 0, 0., 0., 0., 0.
+                bestReward, timestep, score, avgvel, avgQ, avgAct = 0., 0, 0., 0., 0., 0.
                 train_num, actor_loss1, critic_loss1 = 0, 0., 0.
                 actor_loss2, critic_loss2 = 0, 0.
                 actor_loss3, critic_loss3 = 0, 0.
@@ -634,8 +640,8 @@ if __name__ == '__main__':
                     avgAct /= 3
 
                     score += reward
-                    if float(reward) > bestY:
-                        bestY = float(reward)
+                    if float(reward) > bestReward:
+                        bestReward = float(reward)
 
                     print('%s | %s' % (real_action1, real_policy1), end='\r', flush=True)
                     print('%s | %s' % (real_action2, real_policy2), end='\r', flush=True)
@@ -673,18 +679,18 @@ if __name__ == '__main__':
 
                 # done
                 if args.verbose or episode % 10 == 0:
-                    print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f AvgVel %.2f AvgAct %.2f'
-                            % (episode, bestY, timestep, score, avgQ, avgvel, avgAct))
+                    print('Ep %d: BestReward %.3f Step %d Score %.2f AvgQ %.2f AvgVel %.2f AvgAct %.2f'
+                            % (episode, bestReward, timestep, score, avgQ, avgvel, avgAct))
                 stats1 = [
-                    episode, timestep, score, bestY, avgvel, \
+                    episode, timestep, score, bestReward, avgvel, \
                     actor_loss1, critic_loss1, info[0]['level'], avgQ, avgAct, info[0]['status']
                 ]
                 stats2 = [
-                    episode, timestep, score, bestY, avgvel, \
+                    episode, timestep, score, bestReward, avgvel, \
                     actor_loss2, critic_loss2, info[1]['level'], avgQ, avgAct, info[1]['status']
                 ]
                 stats3 = [
-                    episode, timestep, score, bestY, avgvel, \
+                    episode, timestep, score, bestReward, avgvel, \
                     actor_loss3, critic_loss3, info[2]['level'], avgQ, avgAct, info[2]['status']
                 ]
                 # log stats
@@ -698,19 +704,19 @@ if __name__ == '__main__':
                     wr = csv.writer(f)
                     wr.writerow(['%.4f' % s if type(s) is float else s for s in stats3])
 
-                if highscoreY < score:
-                    highscoreY = score
+                if highscore < score:
+                    highscore = score
                     with open('save_stat/'+ agent_name1 + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
                         wr = csv.writer(f)
-                        wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
+                        wr.writerow('%.4f' % s if type(s) is float else s for s in [highscore, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
 
                     with open('save_stat/'+ agent_name2 + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
                         wr = csv.writer(f)
-                        wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
+                        wr.writerow('%.4f' % s if type(s) is float else s for s in [highscore, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
 
                     with open('save_stat/'+ agent_name3 + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
                         wr = csv.writer(f)
-                        wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
+                        wr.writerow('%.4f' % s if type(s) is float else s for s in [highscore, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
                     agent1.save_model('./save_model/'+ agent_name1 + '_best')
                     agent2.save_model('./save_model/'+ agent_name2 + '_best')
                     agent3.save_model('./save_model/'+ agent_name3 + '_best')

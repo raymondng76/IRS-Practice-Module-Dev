@@ -28,7 +28,6 @@ from airsim_env import Env, ACTION
 np.set_printoptions(suppress=True, precision=4)
 agent_name = 'rdqn'
 
-
 class RDQNAgent(object):
     
     def __init__(self, state_size, action_size, lr,
@@ -275,7 +274,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr',         type=float, default=1e-4)
     parser.add_argument('--gamma',      type=float, default=0.99)
     parser.add_argument('--seqsize',    type=int,   default=5)
-    parser.add_argument('--epoch',      type=int,   default=1)
+    parser.add_argument('--epoch',      type=int,   default=5)
     parser.add_argument('--batch_size', type=int,   default=32)
     parser.add_argument('--memory_size',type=int,   default=10000)
     parser.add_argument('--train_start',type=int,   default=1000)
@@ -319,7 +318,7 @@ if __name__ == '__main__':
                 bug = False
 
                 # stats
-                bestY, timestep, score, avgQ = 0., 0, 0., 0.
+                bestReward, timestep, score, avgQ = 0., 0, 0., 0.
                 observe = env.reset()
                 image, vel = observe
                 vel = np.array(vel)
@@ -355,8 +354,8 @@ if __name__ == '__main__':
                     # stats
                     avgQ += float(Qmax1 + Qmax2 + Qmax3)
                     score += float(reward)
-                    if timestep > bestY:
-                        bestY = timestep
+                    if timestep > bestReward:
+                        bestReward = timestep
                     print('%s' % (ACTION[action1]), end='\r', flush=True)
                     print('%s' % (ACTION[action2]), end='\r', flush=True)
                     print('%s' % (ACTION[action3]), end='\r', flush=True)
@@ -372,8 +371,8 @@ if __name__ == '__main__':
                 avgQ /= timestep
 
                 # done
-                print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f Info1 %s Info2 %s Info3 %s'
-                        % (episode, bestY, timestep, score, avgQ, info1, info2, info3))
+                print('Ep %d: BestReward %.3f Step %d Score %.2f AvgQ %.2f Info1 %s Info2 %s Info3 %s'
+                        % (episode, bestReward, timestep, score, avgQ, info1, info2, info3))
 
                 episode += 1
             except KeyboardInterrupt:
@@ -381,8 +380,8 @@ if __name__ == '__main__':
                 break
     else:
         # Train
-        time_limit = 9999999
-        highscoreY = -9999999999.
+        time_limit = 999
+        highscore = -9999999999.
         if os.path.exists('save_stat/'+ agent_name + '_stat.csv'):
             with open('save_stat/'+ agent_name + '_stat.csv', 'r') as f:
                 read = csv.reader(f)
@@ -392,8 +391,8 @@ if __name__ == '__main__':
         if os.path.exists('save_stat/'+ agent_name + '_highscore.csv'):
             with open('save_stat/'+ agent_name + '_highscore.csv', 'r') as f:
                 read = csv.reader(f)
-                highscoreY = float(next(reversed(list(read)))[0])
-                print('Best Y:', highscoreY)
+                highscore = float(next(reversed(list(read)))[0])
+                print('Best Y:', highscore)
         global_step = 0
         global_train_num = 0
         while True:
@@ -402,7 +401,7 @@ if __name__ == '__main__':
                 bug = False
 
                 # stats
-                bestY, timestep, score, avgQ = 0., 0, 0., 0.
+                bestReward, timestep, score, avgQ = 0., 0, 0., 0.
                 train_num, loss = 0, 0.
                 
                 observe = env.reset()
@@ -421,7 +420,7 @@ if __name__ == '__main__':
                     timestep += 1
                     global_step += 1
                     if len(agent.memory) >= args.train_start and global_step >= args.train_rate:
-                        print('Updating model')
+                        print('Training model')
                         for _ in range(args.epoch):
                             c_loss = agent.train_model()
                             loss += float(c_loss)
@@ -429,6 +428,7 @@ if __name__ == '__main__':
                             global_train_num += 1
                         global_step = 0
                     if global_train_num >= args.target_rate:
+                        print('Updating target model')
                         agent.update_target_model()
                         global_train_num = 0
 
@@ -456,8 +456,8 @@ if __name__ == '__main__':
                     # stats
                     avgQ += float(Qmax1 + Qmax2 + Qmax3)
                     score += float(reward)
-                    if float(reward) > bestY:
-                        bestY = float(reward)
+                    if float(reward) > bestReward:
+                        bestReward = float(reward)
 
                     print('%s | %s' % (ACTION[action1], ACTION[policy1]), end='\r', flush=True)
                     print('%s | %s' % (ACTION[action2], ACTION[policy2]), end='\r', flush=True)
@@ -479,21 +479,21 @@ if __name__ == '__main__':
 
                 # done
                 if args.verbose or episode % 10 == 0:
-                    print('Ep %d: BestY %.3f Step %d Score %.2f AvgQ %.2f'
-                            % (episode, bestY, timestep, score, avgQ))
+                    print('Ep %d: BestReward %.3f Step %d Score %.2f AvgQ %.2f'
+                            % (episode, bestReward, timestep, score, avgQ))
                 stats = [
-                    episode, timestep, score, bestY, \
+                    episode, timestep, score, bestReward, \
                     loss, info[0]['level'], info[1]['level'], info[2]['level'], avgQ, info[0]['status'], info[1]['status'], info[2]['status']
                 ]
                 # log stats
                 with open('save_stat/'+ agent_name + '_stat.csv', 'a', encoding='utf-8', newline='') as f:
                     wr = csv.writer(f)
                     wr.writerow(['%.4f' % s if type(s) is float else s for s in stats])
-                if highscoreY < score:
-                    highscoreY = score
+                if highscore < score:
+                    highscore = score
                     with open('save_stat/'+ agent_name + '_highscore.csv', 'w', encoding='utf-8', newline='') as f:
                         wr = csv.writer(f)
-                        wr.writerow('%.4f' % s if type(s) is float else s for s in [highscoreY, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
+                        wr.writerow('%.4f' % s if type(s) is float else s for s in [highscore, episode, score, dt.now().strftime('%Y-%m-%d %H:%M:%S')])
                     agent.save_model('./save_model/'+ agent_name + '_best')
                 agent.save_model('./save_model/'+ agent_name)
                 episode += 1
