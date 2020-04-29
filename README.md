@@ -53,7 +53,7 @@ Members  : Kenneth Goh, Raymond Ng, Wong Yoke Keong
 1. Ensure python dependencies have been installed. Then execute the below commands
     - Execute `gdown 'https://drive.google.com/uc?id=1ciGqwUpfNPQu_Ua7cowU8mDIXOG_9kkf'`
     - Unzip the weights: `unzip Final_Weights_Models.zip`
-    - Note that the file is very large (48MB) and downloading over mobile is not recommended
+    - Note that the file is very large (548MB) and downloading over mobile is not recommended
 2. Copy YOLOv3 model weights to `IRS-Practice-Module-Dev` main directory
     - `cp -r Final_Weights_Models/Yolov3_drone_weights/ IRS-Practice-Module-Dev/weights`
 3. Copy desired RL model weights from different iterations to `IRS-Practice-Module-Dev/code` sub-directory
