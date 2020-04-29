@@ -50,14 +50,17 @@ Members  : Kenneth Goh, Raymond Ng, Wong Yoke Keong
    - Using pip: `pip install -r requirements.txt`
 
 ### (E) Loading of Model Weights
-1. Download and copy YOLOv3 model weights to `IRS-Practice-Module-Dev` main directory
-    - `unzip yolo_drone_weights.zip -d IRS-Practice-Module-Dev/`
+1. Ensure python dependencies have been installed. Then execute the below commands
+    - Execute `gdown 'https://drive.google.com/uc?id=1ciGqwUpfNPQu_Ua7cowU8mDIXOG_9kkf'`
+    - Unzip the weights: `unzip Final_Weights_Models.zip`
+    - Note that the file is very large (48MB) and downloading over mobile is not recommended
+2. Move YOLOv3 model weights to `IRS-Practice-Module-Dev` main directory
     - `cd IRS-Practice-Module-Dev`
-    - `mv Yolov3\ Drone\ Weights/ weights`
-2. Download and copy RL model weights to `IRS-Practice-Module-Dev/code` sub-directory
-    - `unzip rl_weights.zip -d IRS-Practice-Module-Dev/code`
+    - `mv Final_Weights_Models/Yolov3_drone_weights/ weights`
+3. Move desired RL model weights from different iterations to `IRS-Practice-Module-Dev/code` sub-directory
+    - e.g `mv Final_Weights_Models/RDQN_Single_Model/3rd_Iteration/* IRS-Practice-Module-Dev/code`
 
-### (F) Running the simulation
+### (F) Running the simulation (Supported in Local only)
 1. Ensure the AirSim environment is running
 2. To run the simulations for the selected models, execute `python <model>.py --play --load_model`
 3. To stop the simulation press `Ctrl-c`
@@ -74,16 +77,20 @@ Members  : Kenneth Goh, Raymond Ng, Wong Yoke Keong
 3. To stop the training press `Ctrl-c`
 
 #### Training on Google Cloud Platform
-1. Please refer to [gcp_training_readme.md](gcp_training_readme.md) for details on setup and training on Google Cloud Platform VM
+1. Please refer to [gcp_training_readme.md](gcp_training_readme.md) for details on setup and training on Google Cloud Platform VM.
+2. Please note that playing the simulation is not recommended on VM due to display challenges.
 ---
 
-## SECTION 5 : PROJECT DELIVERABLES
+## SECTION 5 : SIMULATION VIDEO DEMO
 
-### Project Report
-The project report can be downloaded from the Report folder.
+### Iteration 2
+[![Iteration 2](http://img.youtube.com/vi/ZT0SEAQG_U0/0.jpg)](https://www.youtube.com/watch?v=ZT0SEAQG_U0 "Iteration 2")
 
-### Simulation Video Demo
-[![Simulation Video Demo](http://img.youtube.com/vi/ZT0SEAQG_U0/0.jpg)](https://www.youtube.com/watch?v=ZT0SEAQG_U0 "Simulation Video Demo")
+### Iteration 3 (Best/RDQN Single)
+[![Iteration 2](http://img.youtube.com/vi/OdLcRP5R0MQ/0.jpg)](https://www.youtube.com/watch?v=OdLcRP5R0MQ "Iteration 2")
+
+### Iteration 4
+[![Iteration 2](http://img.youtube.com/vi/aweLkL8Xr18/0.jpg)](https://www.youtube.com/watch?v=aweLkL8Xr18 "Iteration 4")
 
 ---
 ## SECTION 6 : ACKNOWLEDGEMENT AND REFERENCES
