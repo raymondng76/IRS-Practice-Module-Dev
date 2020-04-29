@@ -64,14 +64,11 @@ python build_airsim_image.py \
 ## 4. Run model training file
 1. Create new session named code: `tmux new-session -A -s code`
 2. Activate conda environment `conda activate airsim`
-3. Download and copy yolo model weights to IRS-Practice-Module-Dev
-    - `unzip yolo_drone_weights.zip -d IRS-Practice-Module-Dev/`
-    - `cd IRS-Practice-Module-Dev`
-    - `mv Yolov3\ Drone\ Weights/ weights`
-4. (Optional) If you are continuing training copy existing RL model weights to IRS-Practice-Module-Dev/code
-    - `cd existing_results`
-    - `cp -r . ../IRS-Practice-Module-Dev/code`
+3. Copy YOLOv3 model weights to `IRS-Practice-Module-Dev` main directory
+    - `cp -r Final_Weights_Models/Yolov3_drone_weights/ IRS-Practice-Module-Dev/weights`
+4. (Optional) If you are continuing training copy existing RL model/iteration weights to IRS-Practice-Module-Dev/code
     - `cd ..`
+    - e.g. `cp -r Final_Weights_Models/RDQN_Single_Model/3rd_Iteration/* IRS-Practice-Module-Dev/code`
 5. Execute required model training file in IRS-Practice-Module-Dev/code folder Note this is for initial run. For resuming/continuing run, please see item 6.
     - `cd code`
     - `python <model>.py --verbose`
@@ -86,7 +83,7 @@ python build_airsim_image.py \
 ## 6. Resuming model training
 1. If for some reason (e.g. unexpected errors or VM restart) you need to resume training, use the following command `python <model>.py --verbose --load_model`
 
-## 7. Download RL model weights
+## 7. Download RL model weights to run simulation locally
 1. Install croc: `curl https://getcroc.schollz.com | bash`
 2. From VM home folder, execute `croc send IRS-Practice-Module-Dev/code/save_model/<model>.h5` for required model
 3. Note the passcode output from previous line and execute command on local: `croc -yes <passcode>`
