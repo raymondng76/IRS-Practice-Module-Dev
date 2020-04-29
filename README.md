@@ -54,11 +54,10 @@ Members  : Kenneth Goh, Raymond Ng, Wong Yoke Keong
     - Execute `gdown 'https://drive.google.com/uc?id=1ciGqwUpfNPQu_Ua7cowU8mDIXOG_9kkf'`
     - Unzip the weights: `unzip Final_Weights_Models.zip`
     - Note that the file is very large (48MB) and downloading over mobile is not recommended
-2. Move YOLOv3 model weights to `IRS-Practice-Module-Dev` main directory
-    - `cd IRS-Practice-Module-Dev`
-    - `mv Final_Weights_Models/Yolov3_drone_weights/ weights`
-3. Move desired RL model weights from different iterations to `IRS-Practice-Module-Dev/code` sub-directory
-    - e.g `mv Final_Weights_Models/RDQN_Single_Model/3rd_Iteration/* IRS-Practice-Module-Dev/code`
+2. Copy YOLOv3 model weights to `IRS-Practice-Module-Dev` main directory
+    - `cp -r Final_Weights_Models/Yolov3_drone_weights/ IRS-Practice-Module-Dev/weights`
+3. Copy desired RL model weights from different iterations to `IRS-Practice-Module-Dev/code` sub-directory
+    - e.g. copy of RDQN Single Model, 3rd Iteration: `cp -r Final_Weights_Models/RDQN_Single_Model/3rd_Iteration/* IRS-Practice-Module-Dev/code`
 
 ### (F) Running the simulation (Supported in Local only)
 1. Ensure the AirSim environment is running
