@@ -64,17 +64,20 @@ python build_airsim_image.py \
 ## 4. Run model training file
 1. Create new session named code: `tmux new-session -A -s code`
 2. Activate conda environment `conda activate airsim`
-3. Copy YOLOv3 model weights to `IRS-Practice-Module-Dev` main directory
+3. Ensure python dependencies have been installed. Then execute the below commands
+    - Execute `gdown 'https://drive.google.com/uc?id=1ciGqwUpfNPQu_Ua7cowU8mDIXOG_9kkf'`
+    - Unzip the weights: `unzip Final_Weights_Models.zip`
+4. Copy YOLOv3 model weights to `IRS-Practice-Module-Dev` main directory
     - `cp -r Final_Weights_Models/Yolov3_drone_weights/ IRS-Practice-Module-Dev/weights`
-4. (Optional) If you are continuing training copy existing RL model/iteration weights to IRS-Practice-Module-Dev/code
+5. (Optional) If you are continuing training copy existing RL model/iteration weights to IRS-Practice-Module-Dev/code
     - `cd ..`
     - e.g. `cp -r Final_Weights_Models/RDQN_Single_Model/3rd_Iteration/* IRS-Practice-Module-Dev/code`
-5. Execute required model training file in IRS-Practice-Module-Dev/code folder Note this is for initial run. For resuming/continuing run, please see item 6.
+6. Execute required model training file in IRS-Practice-Module-Dev/code folder Note this is for initial run. For resuming/continuing run, please see item 6.
     - `cd code`
     - `python <model>.py --verbose`
-6. Detach tmux session: `ctrl-b ctrl-b d`
-7. You can close cloud shell and let training to continue
-8. OPTIONAL: Stackdriver monitoring is recommended to be set up for CPU utilization to ensure that any stop in training can be detected. A threshold of < 40% for 5min is recommended. More information can be found in [codelabs](https://codelabs.developers.google.com/codelabs/cloud-monitoring-codelab/index.html?index=..%2F..index#0) or the [documentation](https://cloud.google.com/monitoring/quickstart-lamp)
+7. Detach tmux session: `ctrl-b ctrl-b d`
+8. You can close cloud shell and let training to continue
+9.  OPTIONAL: Stackdriver monitoring is recommended to be set up for CPU utilization to ensure that any stop in training can be detected. A threshold of < 40% for 5min is recommended. More information can be found in [codelabs](https://codelabs.developers.google.com/codelabs/cloud-monitoring-codelab/index.html?index=..%2F..index#0) or the [documentation](https://cloud.google.com/monitoring/quickstart-lamp)
 
 ## 5. Login to view progress
 1. Login to VM with user as jupyter from Cloud Shell `gcloud compute ssh --zone=us-west1-b jupyter@drml`
