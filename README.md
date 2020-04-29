@@ -51,6 +51,7 @@ Members  : Kenneth Goh, Raymond Ng, Wong Yoke Keong
 
 ### (E) Loading of Model Weights
 1. Ensure python dependencies have been installed. Then execute the below commands
+    - Assuming you are in the directory storing `IRS-Practice-Module-Dev`, if not type `cd ..` if coming from section B/C
     - Execute `gdown 'https://drive.google.com/uc?id=1ciGqwUpfNPQu_Ua7cowU8mDIXOG_9kkf'`
     - Unzip the weights: `unzip Final_Weights_Models.zip`
     - Note that the file is very large (548MB) and downloading over mobile is not recommended
@@ -60,7 +61,7 @@ Members  : Kenneth Goh, Raymond Ng, Wong Yoke Keong
     - e.g. copy of RDQN Single Model, 3rd Iteration: `cp -r Final_Weights_Models/RDQN_Single_Model/3rd_Iteration/* IRS-Practice-Module-Dev/code`
 
 ### (F) Running the simulation (Supported in Local only)
-1. Ensure the AirSim environment is running
+1. Ensure the AirSim environment is running and you are in the `IRS-Practice-Module-Dev` directory
 2. To run the simulations for the selected models, execute `python <model>.py --play --load_model`
 3. To stop the simulation press `Ctrl-c`
 
