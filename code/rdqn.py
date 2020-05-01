@@ -241,7 +241,7 @@ def transform_input(responses, img_height, img_width):
     return image
 
 def interpret_action(action):
-    scaling_factor = 0.075
+    scaling_factor = 0.01
     if action == 0:
         quad_offset = (0, 0, 0)
     elif action == 1:

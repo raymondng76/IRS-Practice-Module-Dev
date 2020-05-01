@@ -99,18 +99,21 @@ class Env:
 
         self.dc.simPause(False)
         
-        # Target drone takes random step in X or Y axis
-        if np.random.random() > targetdrone_espsilon: # Higher chance to move in X axis
-            if np.random.random() > 0.5:
-                self.dc.moveDrone(droneList[3], [0.1,0,0], 2 * timeslice)
-            else:
-                self.dc.moveDrone(droneList[3], [-0.1,0,0], 2 * timeslice)
-        else:
-            if np.random.random() > 0.5:
-                self.dc.moveDrone(droneList[3], [0,0.1,0], 2 * timeslice)
-            else:
-                self.dc.moveDrone(droneList[3], [0,-0.1,0], 2 * timeslice)
-        
+        # Target drone takes random step in X or Y axis for testing purposes
+        # if np.random.random() > targetdrone_espsilon: # Higher chance to move in X axis
+        #     if np.random.random() > 0.5:
+        #         self.dc.moveDrone(droneList[3], [0.1,0,0], 2 * timeslice)
+        #     else:
+        #         self.dc.moveDrone(droneList[3], [-0.1,0,0], 2 * timeslice)
+        # else:
+        #     if np.random.random() > 0.5:
+        #         self.dc.moveDrone(droneList[3], [0,0.1,0], 2 * timeslice)
+        #     else:
+        #         self.dc.moveDrone(droneList[3], [0,-0.1,0], 2 * timeslice)
+
+        # Target drone takes small step in X axis
+        self.dc.moveDrone(droneList[3], [0.01,0,0], 2 * timeslice)
+
         # All follower drones take next move
         has_collided = [False, False, False]
         landed = [False, False, False]

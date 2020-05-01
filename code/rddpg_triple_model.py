@@ -276,14 +276,14 @@ def transform_input(responses, img_height, img_width):
 
 def transform_action(action):
     real_action = np.array(action)
-    real_action /= 10 # Scale down due to camera FOV limitation
+    real_action /= 100 # Scale down due to camera FOV limitation
     real_action[0] += 0.1 if np.random.rand() > 0.5 else -0.1 # At each time step randomise to move left or right
     real_action[1] += 0.1 if np.random.rand() > 0.5 else -0.1 # At each time step randomise to move front or back
     return real_action
 
 def transform_action_forplay(action):
     real_action = np.array(action)
-    real_action /= 10
+    real_action /= 100
     return real_action
 
 if __name__ == '__main__':
