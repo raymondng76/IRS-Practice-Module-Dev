@@ -31,9 +31,9 @@ agent_name2 = 'rdqn2'
 agent_name3 = 'rdqn3'
 
 class RDQNAgent(object):
-    
+
     def __init__(self, state_size, action_size, lr,
-                gamma, batch_size, memory_size, 
+                gamma, batch_size, memory_size,
                 epsilon, epsilon_end, decay_step, load_model, agent_name):
         self.state_size = state_size
         self.vel_size = 1
@@ -56,7 +56,7 @@ class RDQNAgent(object):
         self.sess.run(tf.global_variables_initializer())
         if load_model:
             self.load_model('./save_model/'+ agent_name)
-        
+
         self.target_critic.set_weights(self.critic.get_weights())
 
         self.memory = deque(maxlen=self.memory_size)
@@ -76,7 +76,7 @@ class RDQNAgent(object):
         image_process = GRU(64, kernel_initializer='he_normal', use_bias=False)(image_process)
         image_process = BatchNormalization()(image_process)
         image_process = Activation('tanh')(image_process)
-        
+
         # vel process
         vel = Input(shape=[self.vel_size])
         vel_process = Dense(6, kernel_initializer='he_normal', use_bias=False)(vel)
@@ -97,14 +97,14 @@ class RDQNAgent(object):
         critic = Model(inputs=[image, vel], outputs=Qvalue)
 
         critic._make_predict_function()
-        
+
         return critic
 
     def build_critic_optimizer(self):
         action = K.placeholder(shape=(None, ), dtype='int32')
         y = K.placeholder(shape=(None, ), dtype='float32')
         pred = self.critic.output
-        
+
         # loss = K.mean(K.square(pred - y))
         # Huber Loss
         action_vec = K.one_hot(action, self.action_size)
@@ -142,7 +142,7 @@ class RDQNAgent(object):
         dones = np.zeros((self.batch_size))
 
         targets = np.zeros((self.batch_size, 1))
-        
+
         for i, sample in enumerate(batch):
             images[i], vels[i] = sample[0]
             actions[i] = sample[1]
@@ -156,9 +156,9 @@ class RDQNAgent(object):
         critic_loss = self.critic_update(states + [actions, targets])
         return critic_loss[0]
 
-    def append_memory(self, state, action, reward, next_state, done):        
+    def append_memory(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
-        
+
     def load_model(self, name):
         if os.path.exists(name + '.h5'):
             self.critic.load_weights(name + '.h5')
@@ -193,12 +193,12 @@ def interpret_action(action):
     elif action == 3:
         quad_offset = (0, 0, scaling_factor)
     elif action == 4:
-        quad_offset = (-scaling_factor, 0, 0)    
+        quad_offset = (-scaling_factor, 0, 0)
     elif action == 5:
         quad_offset = (0, -scaling_factor, 0)
     elif action == 6:
         quad_offset = (0, 0, -scaling_factor)
-    
+
     return quad_offset
 
 if __name__ == '__main__':
@@ -317,10 +317,14 @@ if __name__ == '__main__':
 
                 while not done:
                     timestep += 1
-
+                    # predstart = time.time()
                     Qs1 = agent1.critic.predict(state1)[0]
                     Qs2 = agent2.critic.predict(state2)[0]
                     Qs3 = agent3.critic.predict(state3)[0]
+                    # predend = time.time()
+                    # total_time = predend - predstart
+                    # with open('rdqn_triple_predtime.txt', 'a') as txtfile:
+                    #     txtfile.write(" ".join(str(total_time)) + '\n')
 
                     action1 = np.argmax(Qs1)
                     action2 = np.argmax(Qs2)
@@ -379,7 +383,7 @@ if __name__ == '__main__':
 
                 if bug:
                     continue
-                
+
                 avgQ /= timestep
 
                 # done
@@ -456,7 +460,7 @@ if __name__ == '__main__':
                 vel1 = vel[0].reshape(1, -1)
                 vel2 = vel[1].reshape(1, -1)
                 vel3 = vel[2].reshape(1, -1)
-                
+
                 state1 = [history1, vel1]
                 state2 = [history2, vel2]
                 state3 = [history3, vel3]
@@ -470,7 +474,7 @@ if __name__ == '__main__':
                         for _ in range(args.epoch):
                             c_loss1 = agent1.train_model()
                             loss1 += float(c_loss1)
-                            
+
                             c_loss2 = agent2.train_model()
                             loss2 += float(c_loss2)
 
@@ -519,7 +523,7 @@ if __name__ == '__main__':
                     vel1 = vel[0].reshape(1, -1)
                     vel2 = vel[1].reshape(1, -1)
                     vel3 = vel[2].reshape(1, -1)
-                    
+
                     next_state1 = [history1, vel1]
                     next_state2 = [history2, vel2]
                     next_state3 = [history3, vel3]

@@ -414,10 +414,14 @@ if __name__ == '__main__':
 
                 while not done:
                     timestep += 1
-                    
+                    # predstart = time.time()
                     action1 = agent1.actor.predict(state1)[0]
                     action2 = agent2.actor.predict(state2)[0]
                     action3 = agent3.actor.predict(state3)[0]
+                    # predend = time.time()
+                    # total_time = predend - predstart
+                    # with open('triple_rddpg_predtime.txt', 'a') as txtfile:
+                    #     txtfile.write(" ".join(str(total_time)) + '\n')
 
                     noise = [np.random.normal(scale=args.epsilon) for _ in range(action_size)]
                     noise = np.array(noise, dtype=np.float32)
@@ -425,11 +429,11 @@ if __name__ == '__main__':
                     action1 = np.clip(action1 + noise, -1, 1)
                     action2 = np.clip(action2 + noise, -1, 1)
                     action3 = np.clip(action3 + noise, -1, 1)
-                    
+
                     real_action1 = transform_action(action1)
                     real_action2 = transform_action(action2)
                     real_action3 = transform_action(action3)
-                    
+
                     observe, reward, done, info = env.step(transform_action([real_action1, real_action2, real_action3]))
                     image, vel = observe
                     vel = np.array(vel)
