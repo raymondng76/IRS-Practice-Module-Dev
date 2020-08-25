@@ -45,6 +45,13 @@ class A2CAgent(object):
         self.entropy = entropy
         self.horizon = horizon
 
+        # # custom
+        # self.memory_size = memory_size
+        # self.epsilon = epsilon
+        # self.epsilon_end = epsilon_end
+        # self.decay_step = decay_step
+        # self.epsilon_decay = (epsilon - epsilon_end) / decay_step
+
         self.sess = tf.Session()
         K.set_session(self.sess)
 
@@ -59,6 +66,8 @@ class A2CAgent(object):
         self.target_critic.set_weights(self.critic.get_weights())
 
         self.states, self.actions, self.rewards = [], [], []
+
+        # self.memory = deque(maxlen=self.memory_size)
 
     def build_model(self):
         # image process
@@ -86,11 +95,10 @@ class A2CAgent(object):
         state_process = Concatenate()([image_process, vel_process])
 
         # Actor
-        policy = Dense(256, kernel_initializer='he_normal', use_bias=False)(state_process)
+        policy = Dense(128, kernel_initializer='he_normal', use_bias=False)(state_process)
         policy = ELU()(policy)
         policy = BatchNormalization()(policy)
         policy = Dense(self.action_size, activation='softmax', kernel_initializer=tf.random_uniform_initializer(minval=-2e-3, maxval=2e-3))(policy)
-        
         actor = Model(inputs=[image, vel], outputs=policy)
 
         # Critic
@@ -109,24 +117,26 @@ class A2CAgent(object):
         return actor, critic
 
     def build_actor_optimizer(self):
-        action = K.placeholder(shape=[None, ])
-        advantages = K.placeholder(shape=[None, ])
+        action = K.placeholder(shape=(None, self.action_size))
+        advantages = K.placeholder(shape=(None,))
 
         policy = self.actor.output
-
+        
         action_prob = K.sum(action * policy, axis=1)
-        cross_entropy = K.log(action_prob + 1e-6) * advantages
-        cross_entropy = -K.mean(cross_entropy)
+        cross_entropy = K.log(action_prob + 1e-6) * K.stop_gradient(advantages) 
+        # K.log(action_prob + 1e-6) * advantages
+        cross_entropy = -K.sum(cross_entropy) # -K.mean(cross_entropy) 
 
         entropy = K.sum(policy * K.log(policy + 1e-6), axis=1)
-        entropy = K.mean(entropy)
+        #entropy = K.mean(entropy)
 
         loss = cross_entropy + self.entropy * entropy
 
         optimizer = Adam(lr=self.actor_lr)
         updates = optimizer.get_updates(self.actor.trainable_weights, [], loss)
-        train = K.function([self.actor.input[0], self.actor.input[1], action, advantages],
-                           [loss], updates=updates)
+        train = K.function([self.actor.input, action, advantages],
+                           [], updates=updates)
+        #train = K.function([self.actor.input[0], self.actor.input[1], action, advantages], [loss], updates=updates)
         return train
 
     def build_critic_optimizer(self):
@@ -179,8 +189,9 @@ class A2CAgent(object):
         advantage = (advantage - np.mean(advantage)) / (np.std(advantage) + 1e-6)
 
         states = [images[:-1], vels[:-1]]
-        # print(len(states[0]))
-        # print(len(states[1]))
+        
+        print(len(states[0]))
+        print(advantage)
         actor_loss = self.actor_update(states + [self.actions, advantage])
         critic_loss = self.critic_update(states + [target_val])
         self.clear_sample()
@@ -262,9 +273,16 @@ if __name__ == '__main__':
     parser.add_argument('--gamma',      type=float, default=0.99)
     parser.add_argument('--lambd',      type=float, default=0.90)
     parser.add_argument('--entropy',    type=float, default=1e-3)
-    parser.add_argument('--horizon',    type=int,   default=32)
+    parser.add_argument('--horizon',    type=int,   default=32) #batch_size
     parser.add_argument('--seqsize',    type=int,   default=5)
     parser.add_argument('--target_rate',type=int,   default=1000)
+    # custom
+    # parser.add_argument('--train_start',type=int,   default=5000)
+    # parser.add_argument('--train_rate', type=int,   default=5)
+    # parser.add_argument('--target_rate',type=int,   default=1000)
+    # parser.add_argument('--epsilon',    type=float, default=1)
+    # parser.add_argument('--epsilon_end',type=float, default=0.05)
+    # parser.add_argument('--decay_step', type=int,   default=20000)
 
     args = parser.parse_args()
 
@@ -374,7 +392,8 @@ if __name__ == '__main__':
                 bug = False
 
                 # stats
-                bestY, timestep, score, pmax = 0., 0, 0., 0.
+                # stats
+                bestY, timestep, score, pmax1, pmax2, pmax3 = 0., 0, 0., 0., 0., 0.
 
                 observe = env.reset()
                 image, vel = observe
@@ -537,9 +556,9 @@ if __name__ == '__main__':
                         bug = True
                         break
 
-                    history1 = np.append(history1[:, 1:], [image1], axis=1)
-                    history2 = np.append(history2[:, 1:], [image2], axis=1)
-                    history3 = np.append(history3[:, 1:], [image3], axis=1)
+                    history1 = np.stack([image1] * args.seqsize, axis=1)
+                    history2 = np.stack([image2] * args.seqsize, axis=1)
+                    history3 = np.stack([image3] * args.seqsize, axis=1)
 
                     vel1 = vel[0].reshape(1, -1)
                     vel2 = vel[1].reshape(1, -1)
@@ -549,6 +568,7 @@ if __name__ == '__main__':
                     next_state2 = [history2, vel2]
                     next_state3 = [history3, vel3]
 
+                    #reward = np.average(np.array(reward))
                     reward = np.sum(np.array(reward))
 
                     agent1.append_sample(state1, action1, reward)
@@ -569,8 +589,8 @@ if __name__ == '__main__':
                     print('%s | %.3f | %.3f' % (ACTION[action3], policy3[action3], policy3[2]), end='\r')
 
                     if args.verbose:
-                        print('Step %d Action1 %s Action2 %s Action3 %s Reward %.2f Info %s:' 
-                        % (timestep, real_action1, real_action2, real_action3, reward, info['status']))
+                        print('Step %d Action1 %s Action2 %s Action3 %s Reward %.2f Info1 %s Info2 %s Info3 %s:' 
+                        % (timestep, real_action1, real_action2, real_action3, reward, info1, info2, info3))
 
                     if t >= args.horizon or done:
                         t = 0
@@ -606,19 +626,19 @@ if __name__ == '__main__':
                 critic_loss3 /= (timestep // args.horizon + 1)
 
                 if args.verbose or episode % 10 == 0:
-                    print('Ep %d: BestY %.3f Step %d Score %.2f Pmax %.2f'
-                            % (episode, bestY, timestep, score, pmax))
+                    print('Ep %d: BestY %.3f Step %d Score %.2f Pmax1 %.2f Pmax2 %.2f Pmax3 %.2f'
+                            % (episode, bestY, timestep, score, pmax1, pmax2, pmax3))
                 stats1 = [
                     episode, timestep, score, bestY, \
-                    pmax, actor_loss1, critic_loss1, info['level'], info['status']
+                    pmax1, actor_loss1, critic_loss1, info['level'], info['status']
                 ]
                 stats2 = [
                     episode, timestep, score, bestY, \
-                    pmax, actor_loss2, critic_loss2, info['level'], info['status']
+                    pmax2, actor_loss2, critic_loss2, info['level'], info['status']
                 ]
                 stats3 = [
                     episode, timestep, score, bestY, \
-                    pmax, actor_loss3, critic_loss3, info['level'], info['status']
+                    pmax3, actor_loss3, critic_loss3, info['level'], info['status']
                 ]
 
                 # log stats
