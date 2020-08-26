@@ -277,7 +277,7 @@ if __name__ == '__main__':
     parser.add_argument('--epoch',      type=int,   default=5)
     parser.add_argument('--batch_size', type=int,   default=32)
     parser.add_argument('--memory_size',type=int,   default=10000)
-    parser.add_argument('--train_start',type=int,   default=1000)
+    parser.add_argument('--train_start',type=int,   default=32)
     parser.add_argument('--train_rate', type=int,   default=5)
     parser.add_argument('--target_rate',type=int,   default=1000)
     parser.add_argument('--epsilon',    type=float, default=1)
@@ -294,7 +294,7 @@ if __name__ == '__main__':
         os.makedirs('save_model')
 
     # Make RL agent
-    state_size = [args.seqsize, args.img_height, args.img_width, 3]
+    state_size = [args.img_height, args.img_width, 3] #[args.seqsize, args.img_height, args.img_width, 3]
     action_size = 7
     agent = RDQNAgent(
         state_size=state_size,
@@ -327,9 +327,9 @@ if __name__ == '__main__':
                     image = transform_input(image, args.img_height, args.img_width)
                 except:
                     continue
-                history = np.stack([image] * args.seqsize, axis=1)
+                #history = np.stack([image] * args.seqsize, axis=1)
                 vel = vel.reshape(1, -1)
-                state = [history, vel]
+                state = [image, vel]
                 while not done:
                     timestep += 1
                     
@@ -346,9 +346,9 @@ if __name__ == '__main__':
                         print('BUG')
                         bug = True
                         break
-                    history = np.append(history[:, 1:], [image], axis=1)
+                    #history = np.append(history[:, 1:], [image], axis=1)
                     vel = vel.reshape(1, -1)
-                    next_state = [history, vel]
+                    next_state = [image, vel]
                     reward = np.sum(np.array(reward))
                     info1, info2, info3 = info[0]['status'], info[1]['status'], info[2]['status']
 
